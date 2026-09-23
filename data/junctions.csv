@@ -1,0 +1,8 @@
+junction_id,station_id,junction_name,branch_direction
+J01,ST04,Mathura Junction,Agra
+J02,ST04,Mathura Junction,Kasganj
+J03,ST06,Bayana Junction,Agra
+J04,ST08,Gangapur City Junction,Dausa
+J05,ST09,Sawai Madhopur Junction,Jaipur
+J06,ST10,Kota Junction,Bina
+J07,ST10,Kota Junction,Chittorgarh

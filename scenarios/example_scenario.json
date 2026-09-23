@@ -1,0 +1,34 @@
+{
+    "scenario_id": "SC001",
+    "description": "Example mixed traffic situation near Mathura and Bharatpur",
+    "simulation_time_min": 120,
+    "trains": [
+        {
+            "train_id": "T008",
+            "location": "PWL",
+            "direction": "DOWN",
+            "status": "APPROACHING",
+            "delay_min": 4,
+            "current_section": "S03",
+            "next_station": "MTJ"
+        },
+        {
+            "train_id": "T022",
+            "location": "BTE",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 2,
+            "current_section": null,
+            "next_station": "BXN"
+        },
+        {
+            "train_id": "T029",
+            "location": "BTE",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 12,
+            "current_section": null,
+            "next_station": "BXN"
+        }
+    ]
+}

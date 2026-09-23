@@ -1,0 +1,31 @@
+train_id,train_number,train_name,train_type,priority,max_speed_kmph,length_m,entry_station,exit_station,route_id,stops_intermediate,dwell_min,is_freight
+T001,12953,August Kranti Rajdhani,Rajdhani,5,130,600,NZM,MTJ,R03,false,0,false
+T002,12951,Mumbai Central Rajdhani,Rajdhani,5,130,600,NZM,MTJ,R03,false,0,false
+T003,12431,Thiruvananthapuram Rajdhani,Rajdhani,5,130,600,NZM,MTJ,R03,false,0,false
+T004,12001,Bhopal Shatabdi,Shatabdi,5,130,500,MTJ,NDLS,R03,true,2,false
+T005,12049,Gatimaan Express,Gatimaan,5,160,500,MTJ,NZM,R03,false,0,false
+T006,12059,Kota Jan Shatabdi,Jan Shatabdi,4,130,500,KOTA,NZM,R02,true,2,false
+T007,12903,Golden Temple Mail,Superfast,4,130,650,NZM,MTJ,R03,true,2,false
+T008,12963,Mewar Express,Superfast,4,130,650,NZM,KOTA,R01,true,2,false
+T009,12449,Goa Sampark Kranti,Superfast,4,130,650,NZM,MTJ,R03,false,0,false
+T010,12217,Kerala Sampark Kranti,Superfast,4,130,650,NZM,MTJ,R03,false,0,false
+T011,12401,Nanda Devi AC Express,Express,4,130,600,KOTA,NZM,R02,true,2,false
+T012,12925,Paschim Express,Superfast,4,130,650,NZM,KOTA,R01,true,2,false
+T013,12629,Karnataka Sampark Kranti,Superfast,4,130,650,NZM,MTJ,R03,false,0,false
+T014,12137,Punjab Mail,Express,3,110,650,NZM,MTJ,R03,true,2,false
+T015,12189,Mahakaushal Express,Superfast,3,110,600,NZM,MTJ,R03,true,2,false
+T016,12919,Malwa Express,Superfast,3,130,650,NZM,KOTA,R01,true,2,false
+T017,12483,Amritsar Kochuveli SF,Superfast,3,110,650,NZM,MTJ,R03,false,0,false
+T018,12415,New Delhi Indore SF,Superfast,3,110,600,NZM,MTJ,R03,true,2,false
+T019,20155,New Delhi DADN SF,Superfast,3,110,600,NZM,MTJ,R03,false,0,false
+T020,12781,NZM Mysuru SF,Superfast,3,110,650,NZM,MTJ,R03,false,0,false
+T021,SIM-021,New Delhi Agra Intercity,Intercity,3,110,450,NDLS,MTJ,R03,true,2,false
+T022,SIM-022,Gita Jayanti Express,Express,3,110,550,MTJ,KOTA,R04,true,2,false
+T023,SIM-023,AWR Kota Express,Express,2,100,500,MTJ,KOTA,R04,true,3,false
+T024,12465,Ranthambhore Express,Express,3,110,500,NDLS,KOTA,R01,true,2,false
+T025,19037,Avadh Express,Express,3,110,650,NZM,MTJ,R03,true,2,false
+T026,SIM-026,Palwal Mathura MEMU,MEMU,2,100,350,PWL,MTJ,R03,true,1,false
+T027,SIM-027,Shakurbasti Mathura EMU,EMU,2,100,300,NZM,MTJ,R03,true,1,false
+T028,SIM-028,Ghaziabad Mathura EMU,EMU,2,100,300,NZM,MTJ,R03,true,1,false
+T029,F01,Container Freight,Freight,1,75,700,NZM,KOTA,R01,true,3,true
+T030,F02,BOXN Coal Freight,Freight,1,75,700,KOTA,NZM,R02,true,3,true

@@ -1,0 +1,17 @@
+station_id,station_name,station_code,station_type
+ST01,New Delhi,NDLS,major_origin
+ST02,Hazrat Nizamuddin,NZM,major
+ST03,Palwal,PWL,intermediate
+ST04,Mathura Junction,MTJ,major_junction
+ST05,Bharatpur Junction,BTE,junction
+ST06,Bayana Junction,BXN,junction
+ST07,Hindaun City,HAN,intermediate
+ST08,Gangapur City Junction,GGC,major_junction
+ST09,Sawai Madhopur Junction,SWM,major_junction
+ST10,Kota Junction,KOTA,major_hub
+ST11,Agra,AGRA,branch_node
+ST12,Kasganj,KSG,branch_node
+ST13,Dausa,DAUSA,branch_node
+ST14,Jaipur,JP,branch_node
+ST15,Bina,BINA,branch_node
+ST16,Chittorgarh,COR,branch_node

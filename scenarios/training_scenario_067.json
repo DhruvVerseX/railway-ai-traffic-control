@@ -1,0 +1,37 @@
+{
+    "scenario_id": "TRAIN_067",
+    "description": "Generated traffic scenario with 3 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T028",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 4.27,
+            "entry_time_min": 4.27,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T001",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 7.18,
+            "entry_time_min": 7.18,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T019",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 5.11,
+            "entry_time_min": 5.11,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

@@ -1,0 +1,67 @@
+{
+    "scenario_id": "TRAIN_024",
+    "description": "Generated traffic scenario with 6 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T016",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 5.68,
+            "entry_time_min": 5.68,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T030",
+            "location": "KOTA",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 14.78,
+            "entry_time_min": 14.78,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T007",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 3.98,
+            "entry_time_min": 3.98,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T013",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 11.76,
+            "entry_time_min": 11.76,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T002",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 6.83,
+            "entry_time_min": 6.83,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T006",
+            "location": "KOTA",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 6.35,
+            "entry_time_min": 6.35,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

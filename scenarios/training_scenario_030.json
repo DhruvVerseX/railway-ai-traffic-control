@@ -1,0 +1,67 @@
+{
+    "scenario_id": "TRAIN_030",
+    "description": "Generated traffic scenario with 6 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T027",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 7.93,
+            "entry_time_min": 7.93,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T018",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 10.02,
+            "entry_time_min": 10.02,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T023",
+            "location": "MTJ",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 8.32,
+            "entry_time_min": 8.32,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T010",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 13.98,
+            "entry_time_min": 13.98,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T020",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 1.55,
+            "entry_time_min": 1.55,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T021",
+            "location": "NDLS",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 13.17,
+            "entry_time_min": 13.17,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

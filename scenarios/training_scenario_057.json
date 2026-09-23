@@ -1,0 +1,77 @@
+{
+    "scenario_id": "TRAIN_057",
+    "description": "Generated traffic scenario with 7 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T026",
+            "location": "PWL",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 1.03,
+            "entry_time_min": 1.03,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T002",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 9.71,
+            "entry_time_min": 9.71,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T012",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 0.19,
+            "entry_time_min": 0.19,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T018",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 6.3,
+            "entry_time_min": 6.3,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T014",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 7.35,
+            "entry_time_min": 7.35,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T022",
+            "location": "MTJ",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 6.5,
+            "entry_time_min": 6.5,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T028",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 5.43,
+            "entry_time_min": 5.43,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

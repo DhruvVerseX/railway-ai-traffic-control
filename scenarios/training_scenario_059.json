@@ -1,0 +1,87 @@
+{
+    "scenario_id": "TRAIN_059",
+    "description": "Generated traffic scenario with 8 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T019",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 11.26,
+            "entry_time_min": 11.26,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T009",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 8.55,
+            "entry_time_min": 8.55,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T011",
+            "location": "KOTA",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 10.02,
+            "entry_time_min": 10.02,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T008",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 5.05,
+            "entry_time_min": 5.05,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T003",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 7.41,
+            "entry_time_min": 7.41,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T029",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 4.88,
+            "entry_time_min": 4.88,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T015",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 7.31,
+            "entry_time_min": 7.31,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T027",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 5.32,
+            "entry_time_min": 5.32,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

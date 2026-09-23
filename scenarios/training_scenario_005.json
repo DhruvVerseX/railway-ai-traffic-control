@@ -1,0 +1,37 @@
+{
+    "scenario_id": "TRAIN_005",
+    "description": "Generated traffic scenario with 3 trains.",
+    "simulation_time_min": 120.0,
+    "trains": [
+        {
+            "train_id": "T030",
+            "location": "KOTA",
+            "direction": "DOWN",
+            "status": "WAITING",
+            "delay_min": 8.28,
+            "entry_time_min": 8.28,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T013",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 12.44,
+            "entry_time_min": 12.44,
+            "current_section": null,
+            "next_station": null
+        },
+        {
+            "train_id": "T003",
+            "location": "NZM",
+            "direction": "UP",
+            "status": "WAITING",
+            "delay_min": 9.28,
+            "entry_time_min": 9.28,
+            "current_section": null,
+            "next_station": null
+        }
+    ]
+}

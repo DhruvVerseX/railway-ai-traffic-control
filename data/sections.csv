@@ -1,0 +1,17 @@
+section_id,from_station,to_station,track_configuration,distance_km,normal_speed_kmph,minimum_headway_min,capacity_tracks
+S01,NDLS,NZM,2-track,8,90,5,2
+S02,NZM,PWL,2-track,50,100,5,2
+S03,PWL,MTJ,4-track,84,110,4,4
+S04,MTJ,BTE,2-track,33,100,5,2
+S05,BTE,BXN,2-track,42,100,5,2
+S06,BXN,HAN,2-track,33,100,5,2
+S07,HAN,GGC,2-track,56,100,5,2
+S08,GGC,SWM,2-track,64,100,5,2
+S09,SWM,KOTA,2-track,108,100,5,2
+S10,MTJ,AGRA,branch,55,80,6,1
+S11,MTJ,KSG,branch,60,80,6,1
+S12,BXN,AGRA,branch,60,80,6,1
+S13,GGC,DAUSA,branch,97,80,6,1
+S14,SWM,JP,branch,130,80,6,1
+S15,KOTA,BINA,branch,220,80,6,1
+S16,KOTA,COR,branch,180,80,6,1

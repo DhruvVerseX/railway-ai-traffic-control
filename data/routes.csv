@@ -1,0 +1,20 @@
+route_id,route_name,origin,destination,station_sequence,section_sequence,route_type
+R01,New Delhi to Kota,NDLS,KOTA,NDLS>NZM>PWL>MTJ>BTE>BXN>HAN>GGC>SWM>KOTA,S01>S02>S03>S04>S05>S06>S07>S08>S09,mainline
+R02,Kota to New Delhi,KOTA,NDLS,KOTA>SWM>GGC>HAN>BXN>BTE>MTJ>PWL>NZM>NDLS,S09>S08>S07>S06>S05>S04>S03>S02>S01,mainline
+R03,New Delhi to Mathura,NDLS,MTJ,NDLS>NZM>PWL>MTJ,S01>S02>S03,mainline
+R04,Mathura to Kota,MTJ,KOTA,MTJ>BTE>BXN>HAN>GGC>SWM>KOTA,S04>S05>S06>S07>S08>S09,mainline
+R05,Kota to Mathura,KOTA,MTJ,KOTA>SWM>GGC>HAN>BXN>BTE>MTJ,S09>S08>S07>S06>S05>S04,mainline
+R06,Mathura to Agra,MTJ,AGRA,MTJ>AGRA,S10,branch
+R07,Agra to Mathura,AGRA,MTJ,AGRA>MTJ,S10,branch
+R08,Mathura to Kasganj,MTJ,KSG,MTJ>KSG,S11,branch
+R09,Kasganj to Mathura,KSG,MTJ,KSG>MTJ,S11,branch
+R10,Bayana to Agra,BXN,AGRA,BXN>AGRA,S12,branch
+R11,Agra to Bayana,AGRA,BXN,AGRA>BXN,S12,branch
+R12,Gangapur City to Dausa,GGC,DAUSA,GGC>DAUSA,S13,branch
+R13,Dausa to Gangapur City,DAUSA,GGC,DAUSA>GGC,S13,branch
+R14,Sawai Madhopur to Jaipur,SWM,JP,SWM>JP,S14,branch
+R15,Jaipur to Sawai Madhopur,JP,SWM,JP>SWM,S14,branch
+R16,Kota to Bina,KOTA,BINA,KOTA>BINA,S15,branch
+R17,Bina to Kota,BINA,KOTA,BINA>KOTA,S15,branch
+R18,Kota to Chittorgarh,KOTA,COR,KOTA>COR,S16,branch
+R19,Chittorgarh to Kota,COR,KOTA,COR>KOTA,S16,branch

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-const allowed = new Set(['network', 'analysis', 'compare', 'scenario', 'advance', 'decide', 'execute', 'state']);
+const allowed = new Set(['network', 'analysis', 'compare', 'scenario', 'advance', 'decide', 'execute', 'release', 'platform', 'signal', 'state']);
 async function proxy(request: NextRequest, context: {params: Promise<{path: string[]}>}) {
   const {path} = await context.params;
   if (!allowed.has(path[0]) || path.length > 2 || (path.length === 2 && (path[0] !== 'state' || !/^[\da-f-]{36}$/.test(path[1])))) return NextResponse.json({error:'Unknown endpoint'}, {status:404});

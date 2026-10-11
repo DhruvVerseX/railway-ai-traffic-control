@@ -142,6 +142,9 @@ class RailwaySimulator:
     def start_train(self, train_id):
 
         train = self.get_train_state(train_id)
+        interlocking = getattr(self, 'interlocking', None)
+        if interlocking is not None and interlocking.blocked_reason(train_id):
+            return False
 
         # Entry time has not been reached
         if self.current_time_min < train.entry_time_min:

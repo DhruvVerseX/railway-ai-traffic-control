@@ -16,6 +16,7 @@ from simulation.simulator import RailwaySimulator
 from input.input_state import TrainDatabase
 from scenarios.mixed_scenario_builder import MixedScenarioBuilder
 from station_dispatch import StationDispatcher, station_simulator, station_metrics, compare_station
+from interlocking import StationInterlocking
 
 network = RailwayNetwork()
 database = TrainDatabase()
@@ -63,6 +64,7 @@ def snapshot(session):
         trains.append(item)
     station = session.get('station', 'MTJ')
     return {'time': sim.current_time_min, 'trains': trains, 'events': sim.history[-100:],
+            'yard': sim.interlocking.snapshot() if hasattr(sim, 'interlocking') else None,
             'station': station, 'metrics': station_metrics(sim, station),
             'automatic': isinstance(session['controller'], StationDispatcher),
             'occupancy': sim.section_occupancy, 'decision': session['decision'],
@@ -137,6 +139,7 @@ class Handler(BaseHTTPRequestHandler):
                 if station not in network.stations:
                     return self.respond(400, {'error': 'Unknown station'})
                 sim = station_simulator(network, database, station, count, seed)
+                StationInterlocking(sim, station)
                 sessions[key] = {'simulator': sim, 'controller': StationDispatcher(sim, database, station),
                                  'decision': None, 'kind': 'station_queue', 'station': station, 'model_error': None}
                 return self.respond(200, {'session': key, **snapshot(sessions[key])})
@@ -144,11 +147,33 @@ class Handler(BaseHTTPRequestHandler):
             if session is None:
                 return self.respond(404, {'error': 'Create a scenario first.'})
             sim = session['simulator']
+            if self.path in {'/platform', '/signal'}:
+                if self.path == '/platform':
+                    sim.interlocking.change_platform(body.get('train_id'), body.get('platform'))
+                else:
+                    sim.interlocking.set_signal(body.get('platform'), body.get('stop'))
+                session['decision'] = session['controller'].make_decision()
+                return self.respond(200, snapshot(session))
+            policy = body.get('policy', 'throughput')
+            if policy not in {'throughput', 'fifo', 'manual'}:
+                return self.respond(400, {'error': 'Unknown dispatch mode'})
+            session['controller'].policy = 'fifo' if policy == 'fifo' else 'throughput'
             if self.path == '/advance':
                 minutes = body.get('minutes', 1)
                 if type(minutes) not in {int, float} or not 0 < minutes <= 5:
                     return self.respond(400, {'error': 'Advance must be between 0 and 5 minutes.'})
-                session['decision'] = session['controller'].advance(minutes)
+                if policy == 'manual':
+                    sim.advance_time(minutes)
+                    session['decision'] = session['controller'].make_decision()
+                else:
+                    session['decision'] = session['controller'].advance(minutes)
+            elif self.path == '/release':
+                train_id = body.get('train_id')
+                if train_id not in sim.trains:
+                    return self.respond(400, {'error': 'Select a train first.'})
+                if not sim.start_train(train_id):
+                    return self.respond(409, {'error': 'Train cannot move yet: check track occupancy, spacing, or readiness.'})
+                session['decision'] = session['controller'].make_decision()
             elif self.path in {'/decide', '/execute'}:
                 if session['controller'] is None:
                     return self.respond(503, {'error': 'AI model unavailable: ' + session['model_error']})

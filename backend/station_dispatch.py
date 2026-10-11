@@ -27,6 +27,10 @@ class StationDispatcher:
             section = sim.network.get_section(sid)
             duration = section.travel_time(float(self.database.get_train(train.train_id)['max_speed_kmph']))
             conflict = self.detector.check_section_conflict(train.train_id, sid)
+            interlocking = getattr(sim, 'interlocking', None)
+            station_block = interlocking.blocked_reason(train.train_id) if interlocking else None
+            if station_block:
+                conflict = {'conflict': True, 'reason': station_block, 'required_wait_min': 0}
             candidates.append({'train_id': train.train_id, 'next_section': sid,
                                'clearance_min': duration, 'waiting_min': train.waiting_time_min,
                                'ready': train.entry_time_min, 'safe': not conflict['conflict'],
@@ -74,6 +78,8 @@ class StationDispatcher:
         last = self.control_step()
         while sim.current_time_min < target - 1e-8:
             times = [target]
+            if getattr(sim, 'interlocking', None):
+                times.append(sim.interlocking.throat_release_time())
             for train in sim.trains.values():
                 if train.status == 'RUNNING':
                     times.append(sim.current_time_min + train.remaining_time_min)
@@ -139,6 +145,8 @@ def station_metrics(sim, station):
 
 def compare_station(network, database, station='MTJ', count=12, seed=42, horizon=120):
     initial = station_simulator(network, database, station, count, seed)
+    from interlocking import StationInterlocking
+    StationInterlocking(initial, station)
     results = []
     for policy, label in [('fifo', 'First come, first served'), ('throughput', 'Throughput dispatcher')]:
         sim = copy.deepcopy(initial)
@@ -159,4 +167,4 @@ def compare_station(network, database, station='MTJ', count=12, seed=42, horizon
     return {'station': station, 'station_name': network.get_station(station).station_name,
             'horizon_min': horizon, 'train_count': len(initial.trains), 'seed': seed, 'controllers': results,
             'method': 'Identical initial trains, readiness times, track rules, and 120-minute window. Departures count trains leaving the selected station.',
-            'limits': 'Heuristic scheduling, not a proven global optimum. Existing model permits one train per entire section and enforces headway after section exit; platforms and interlocking are not modeled.'}
+            'limits': 'Heuristic scheduling, not a proven global optimum. Four simulated platforms, departure signals, a shared exit switch with one-minute clearance, and locked outgoing routes. One train per entire section; platforms remain reserved until that section clears. These are educational constraints, not a detailed model of the real station.'}

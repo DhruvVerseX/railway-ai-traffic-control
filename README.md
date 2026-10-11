@@ -30,7 +30,7 @@ Open http://127.0.0.1:3000. The API listens only on 127.0.0.1:8000; Next.js forw
 
 Station throughput means departures from the selected station per hour, distinct from completed journeys across the network. The queue is a staged demonstration, not a real timetable. Delay and waiting accumulate during eligible waiting periods. The new dispatcher is a transparent shortest-clearance heuristic with 45-minute aging; it does not claim a global optimum or impersonate the earlier trained V2/V3 models. Those models and evaluation scripts remain available separately.
 
-The underlying section model allows one train per entire section, even when track metadata lists several tracks, and applies headway after section exit. Platforms, signal blocks, and interlocking are not modeled. Both comparison policies use these same conservative rules. Improved throughput is measured for each run, not assumed for every scenario.
+The underlying section model allows one train per entire section, even when track metadata lists several tracks, and applies headway after section exit. The station yard has four simulated platforms, working departure signals, platform reassignment, and a shared exit switch with one-minute clearance. Occupied platforms reject reassignment, red signals block departure, and outgoing routes stay locked until the train clears its section. The illustrated train leaves the yard before completing its longer section journey. These are educational station constraints, rather than a detailed reconstruction of Mathura Junction. Both comparison policies use these same conservative rules. Improved throughput is measured for each run, not assumed for every scenario.
 
 ## Checks
 

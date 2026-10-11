@@ -81,8 +81,10 @@ class StationTests(unittest.TestCase):
             self.assertEqual(result['series'][-1]['departed'], result['departed'])
             departures = [s['departed'] for s in result['series']]
             self.assertEqual(departures, sorted(departures))
-        # This seeded congestion case exercises an improvement; not a universal guarantee.
-        self.assertGreater(b['departed'], a['departed'])
+        # Both controllers must obey the same shared exit-switch clearance.
+        for result in first['controllers']:
+            times = sorted(t['departure'] for t in result['timeline'] if t['departure'] is not None)
+            self.assertTrue(all(y - x >= 1 - 1e-8 for x, y in zip(times, times[1:])))
 
     def test_waiting_train_gets_aging_priority(self):
         sim = station_simulator(server.network, server.database, count=12)

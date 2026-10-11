@@ -137,7 +137,7 @@ def station_metrics(sim, station):
             'average_wait_min': round(station_wait / len(sim.trains), 2) if sim.trains else 0}
 
 
-def compare_station(network, database, station='MTJ', count=8, seed=42, horizon=120):
+def compare_station(network, database, station='MTJ', count=12, seed=42, horizon=120):
     initial = station_simulator(network, database, station, count, seed)
     results = []
     for policy, label in [('fifo', 'First come, first served'), ('throughput', 'Throughput dispatcher')]:

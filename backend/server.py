@@ -55,6 +55,8 @@ def snapshot(session):
         record = database.get_train(train.train_id)
         item = asdict(train)
         item.update({key: record.get(key) for key in ['train_type', 'priority', 'entry_station', 'exit_station', 'max_speed_kmph']})
+        if 'station' in session:
+            item['entry_station'] = session['station']
         section = network.sections.get(train.current_section)
         item['speed'] = min(float(record['max_speed_kmph']), section.normal_speed_kmph) if section and train.status == 'RUNNING' else 0
         item['progress'] = max(0, min(1, 1 - train.remaining_time_min / section.travel_time(float(record['max_speed_kmph'])))) if section else 0
@@ -120,7 +122,7 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(body, dict):
                 return self.respond(400, {'error': 'Expected a JSON object'})
             if self.path == '/compare':
-                station, count, seed = body.get('station', 'MTJ'), body.get('count', 8), body.get('seed', 42)
+                station, count, seed = body.get('station', 'MTJ'), body.get('count', 12), body.get('seed', 42)
                 if station not in network.stations or type(count) is not int or not 2 <= count <= 20 or type(seed) is not int:
                     return self.respond(400, {'error': 'Choose a valid station and 2–20 trains.'})
                 return self.respond(200, compare_station(network, database, station, count, seed))

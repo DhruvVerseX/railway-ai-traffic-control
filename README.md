@@ -1,4 +1,4 @@
-# Railwise — railway AI control room
+# Railwise — visual railway station simulation
 
 A Next.js interface around the existing Python railway project. The original Streamlit interface remains available in `website/app.py`.
 
@@ -22,18 +22,21 @@ Open http://127.0.0.1:3000. The API listens only on 127.0.0.1:8000; Next.js forw
 
 ## Present the project
 
-1. Choose an everyday railway situation and click **Show me what happens**.
-2. Meet the four coloured trains. Select a train on the illustrated railway or its journey card.
-3. Click **Ask AI who should go next** to read the actual model decision in plain language.
-4. Click **Let AI make this move**, then move time forward or play the railway.
-5. Open **See the difference** to understand the saved evaluation results.
+1. Select **Mathura Junction** and a queue size (12 trains by default).
+2. Click **Show me what happens** to load a seeded station queue using real project train records and valid outgoing routes.
+3. Click **Find the next safe moves** to inspect throughput-focused dispatch explanations.
+4. **Apply this dispatch plan** releases compatible trains and starts automatic playback. The controller revisits decisions at readiness times, section completions, dwell completion, and headway expiry. Playback advances one simulated minute per update.
+5. **See the difference** reruns arrival-order and optimized dispatch from identical initial queues for 120 minutes. Inspect departures and queue graphs, a synchronized station replay, throughput/waiting bars, and each train's waiting/clearance timeline.
 
-The experience guides the viewer through meeting trains, understanding a decision, and watching its effect. Play advances time; AI decisions remain explicit. The map is schematic. Comparisons use saved baseline/V2/V3 results, while the interactive example uses the trained V2 controller. Model training stays in the existing `ml` scripts.
+Station throughput means departures from the selected station per hour, distinct from completed journeys across the network. The queue is a staged demonstration, not a real timetable. Delay and waiting accumulate during eligible waiting periods. The new dispatcher is a transparent shortest-clearance heuristic with 45-minute aging; it does not claim a global optimum or impersonate the earlier trained V2/V3 models. Those models and evaluation scripts remain available separately.
+
+The underlying section model allows one train per entire section, even when track metadata lists several tracks, and applies headway after section exit. Platforms, signal blocks, and interlocking are not modeled. Both comparison policies use these same conservative rules. Improved throughput is measured for each run, not assumed for every scenario.
 
 ## Checks
 
 ```powershell
 .\.venv-ui\Scripts\python.exe backend/test_api.py
+.\.venv-ui\Scripts\python.exe backend/test_station_dispatch.py
 cd frontend
 npm run typecheck
 npm run build

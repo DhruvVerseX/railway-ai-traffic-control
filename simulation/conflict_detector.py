@@ -149,7 +149,7 @@ class ConflictDetector:
 
             required_headway = section.minimum_headway_min
 
-            if elapsed < required_headway:
+            if elapsed + 1e-9 < required_headway:
 
                 required_wait = (
                     required_headway - elapsed

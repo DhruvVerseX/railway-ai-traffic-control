@@ -27,6 +27,8 @@ class SimulationTrain:
     status: str = "NOT_ENTERED"
 
     remaining_time_min: float = 0.0
+    waiting_time_min: float = 0.0
+    ready_time_min: float = 0.0
 
 
 class RailwaySimulator:
@@ -39,6 +41,7 @@ class RailwaySimulator:
         self.current_time_min = 0.0
 
         self.trains = {}
+        self.dispatch_at_stations = False
 
         # Event history
         self.history = []
@@ -155,6 +158,9 @@ class RailwaySimulator:
 
             return False
 
+        if self.current_time_min < train.ready_time_min - 1e-9:
+            return False
+
         # Create movement model
         movement = self.movement_model.build_movement(train_id)
 
@@ -166,48 +172,26 @@ class RailwaySimulator:
 
         section_id = movement.section_sequence[train.section_index]
 
-        # Check whether section is occupied
-        if section_id in self.section_occupancy:
-
-            occupying_train = self.section_occupancy[section_id]
-
-            self.set_train_waiting(
-                train_id,
-                reason="Section occupied",
-                section_id=section_id,
-            )
-
-            self.log_event(
-                "CONFLICT_DETECTED",
-                train_id=train_id,
-                section_id=section_id,
-                conflicting_train_id=occupying_train,
-                reason="Section occupied",
-            )
-
+        if self._conflict_detector is not None:
+            conflict = self._conflict_detector.check_section_conflict(train_id, section_id)
+            if conflict['conflict']:
+                self.set_train_waiting(train_id, reason=conflict['reason'], section_id=section_id)
+                return False
+        elif section_id in self.section_occupancy:
+            self.set_train_waiting(train_id, reason='Section occupied', section_id=section_id)
             return False
 
         from_station, to_station = self._get_current_section_endpoints(
             section_id
         )
 
-        # Determine movement direction
-        if train.direction == "UP":
-
-            train.current_station = from_station
+        # The route's actual station is authoritative, including branch routes.
+        if train.current_station == from_station:
             train.next_station = to_station
-
-        elif train.direction == "DOWN":
-
-            train.current_station = to_station
+        elif train.current_station == to_station:
             train.next_station = from_station
-
         else:
-
-            raise ValueError(
-                f"Unknown direction for train {train_id}: "
-                f"{train.direction}"
-            )
+            raise ValueError(f'Train {train_id} is not at an endpoint of {section_id}')
 
         # If train was previously waiting, waiting has ended
         if train.status == "WAITING":
@@ -316,6 +300,11 @@ class RailwaySimulator:
 
                 for train in self.trains.values():
 
+                    if train.status in {'WAITING', 'NOT_ENTERED', 'APPROACHING'}:
+                        eligible_time = max(self.current_time_min, train.entry_time_min, train.ready_time_min)
+                        waited = max(0.0, next_event_time - eligible_time)
+                        train.waiting_time_min += waited
+                        train.delay_min += waited
                     if train.status == "RUNNING":
 
                         train.remaining_time_min -= elapsed
@@ -368,145 +357,33 @@ class RailwaySimulator:
 
                 break
     def complete_current_section(self, train_id):
-
         train = self.get_train_state(train_id)
-
         section_id = train.current_section
-
         if section_id is None:
             return False
-
-        # Release section
         if self.section_occupancy.get(section_id) == train_id:
-
             del self.section_occupancy[section_id]
-            # Record section exit for headway tracking
             if self._conflict_detector is not None:
-
-                self._conflict_detector.record_section_exit(
-                    section_id
-                )
-
-        self.log_event(
-            "SECTION_COMPLETED",
-            train_id=train_id,
-            section_id=section_id,
-        )
-
+                self._conflict_detector.record_section_exit(section_id)
+        train.current_station = train.next_station
+        train.current_section = None
+        train.next_station = None
+        train.remaining_time_min = 0.0
+        train.section_index += 1
+        self.log_event('SECTION_COMPLETED', train_id=train_id, section_id=section_id,
+                       station_id=train.current_station)
         movement = self.movement_model.build_movement(train_id)
-
-        # -----------------------------------------------------
-        # FINAL DESTINATION
-        # -----------------------------------------------------
-
-        if train.section_index >= len(movement.section_sequence) - 1:
-
-            train.current_station = train.next_station
-            train.current_section = None
-            train.next_station = None
-            train.remaining_time_min = 0.0
-            train.status = "ARRIVED"
-
-            self.log_event(
-                "TRAIN_ARRIVED",
-                train_id=train_id,
-                station_id=train.current_station,
-            )
-
+        if train.section_index >= len(movement.section_sequence):
+            train.status = 'ARRIVED'
+            self.log_event('TRAIN_ARRIVED', train_id=train_id, station_id=train.current_station)
             return True
-
-        # -----------------------------------------------------
-        # MOVE TO NEXT SECTION
-        # -----------------------------------------------------
-
-        next_section_index = train.section_index + 1
-
-        next_section_id = movement.section_sequence[
-            next_section_index
-        ]
-
-        # Check whether next section is occupied
-        if next_section_id in self.section_occupancy:
-
-            occupying_train = self.section_occupancy[next_section_id]
-
-            # IMPORTANT:
-            # Do NOT increment section_index yet.
-            # The train has not entered this section.
-
-            train.current_section = None
-            train.next_station = None
-            train.remaining_time_min = 0.0
-
-            self.set_train_waiting(
-                train_id,
-                reason="Next section occupied",
-                section_id=next_section_id,
-            )
-
-            self.log_event(
-                "CONFLICT_DETECTED",
-                train_id=train_id,
-                section_id=next_section_id,
-                conflicting_train_id=occupying_train,
-                reason="Next section occupied",
-            )
-
-            return False
-
-        # -----------------------------------------------------
-        # ENTER NEXT SECTION
-        # -----------------------------------------------------
-
-        train.section_index = next_section_index
-
-        from_station, to_station = self._get_current_section_endpoints(
-            next_section_id
-        )
-
-        if train.direction == "UP":
-
-            train.current_station = from_station
-            train.next_station = to_station
-
-        else:
-
-            train.current_station = to_station
-            train.next_station = from_station
-
-        self.section_occupancy[next_section_id] = train_id
-
-        train.current_section = next_section_id
-        train.status = "RUNNING"
-
-        section = self.network.get_section(next_section_id)
-
-        train_record = self.movement_model.train_database.get_train(
-             train.train_id
-        )
-
-        train_speed = float(
-             train_record["max_speed_kmph"]
-        )
-
-        train.remaining_time_min = section.travel_time(
-             train_speed
-        )
-
-        if train.remaining_time_min <= 0:
-
-            train.remaining_time_min = self.network.route_travel_time(
-                train_id
-            )
-
-        self.log_event(
-            "SECTION_ENTERED",
-            train_id=train_id,
-            section_id=next_section_id,
-            from_station=train.current_station,
-            to_station=train.next_station,
-        )
-
+        record = self.movement_model.train_database.get_train(train_id)
+        dwell = float(record.get('dwell_min', 0)) if self.dispatch_at_stations and str(record.get('stops_intermediate')).lower() == 'true' else 0.0
+        train.ready_time_min = self.current_time_min + dwell
+        self.set_train_waiting(train_id, reason='Reached next station',
+                               section_id=movement.section_sequence[train.section_index])
+        if not self.dispatch_at_stations:
+            return self.start_train(train_id)
         return True
 
     # ---------------------------------------------------------
@@ -582,7 +459,20 @@ class RailwaySimulator:
 
                 # If the train is at its entry station,
                 # section_index remains 0.
-                sim_train.section_index = 0
+                cursor = train_record['entry_station']
+                sim_train.section_index = len(movement.section_sequence)
+                for index, sid in enumerate(movement.section_sequence):
+                    if cursor == sim_train.current_station:
+                        sim_train.section_index = index
+                        break
+                    section = self.network.get_section(sid)
+                    cursor = section.to_station if cursor == section.from_station else section.from_station
+                if sim_train.section_index == len(movement.section_sequence) and sim_train.status != 'ARRIVED':
+                    raise ValueError(f'Invalid station for {sim_train.train_id}')
+
+            if sim_train.status == 'RUNNING':
+                section = self.network.get_section(sim_train.current_section)
+                sim_train.remaining_time_min = section.travel_time(float(train_record['max_speed_kmph']))
 
             # Register existing section occupancy
             if (

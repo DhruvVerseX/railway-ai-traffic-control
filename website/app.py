@@ -1,11 +1,15 @@
 import streamlit as st
+import sys
+from pathlib import Path
 
-from railway_ai.simulation.network import RailwayNetwork
-from railway_ai.input.input_state import TrainDatabase
-from railway_ai.scenarios.mixed_scenario_builder import MixedScenarioBuilder
-from railway_ai.simulation.simulator import RailwaySimulator
-from railway_ai.controller.ml_controller import MLTrainController
-from railway_ai.controller.ai_controller import AITrainTrafficController
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from simulation.network import RailwayNetwork
+from input.input_state import TrainDatabase
+from scenarios.mixed_scenario_builder import MixedScenarioBuilder
+from simulation.simulator import RailwaySimulator
+from controller.ml_controller import MLTrainController
+from controller.ai_controller import AITrainTrafficController
 
 
 # =========================================================

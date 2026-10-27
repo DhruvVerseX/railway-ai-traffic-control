@@ -54,14 +54,23 @@ distribution; integrating inference does not establish improved throughput.
 
 ## Checks
 
+The station view uses Anime.js to interpolate between backend-confirmed train
+positions along the drawn track curves. It does not advance simulation time or
+predict movement between API responses. Pause settles to the confirmed position;
+reset recreates the scene. Route pulses run only during playback on locked routes,
+and reduced-motion preferences disable the animated transitions.
+
 ```powershell
 .\.venv-ui\Scripts\python.exe backend/test_api.py
 .\.venv-ui\Scripts\python.exe backend/test_station_dispatch.py
 .\.venv-ui\Scripts\python.exe backend/test_ml_dispatch.py
 cd frontend
 npm run typecheck
+npm run test:motion
 npm run build
 ```
+
+The motion geometry check uses Node.js native TypeScript support (Node 22.18+).
 
 The API uses isolated in-memory simulation sessions, limited to 50; restarting it clears them. This local presentation app has no public deployment authentication. ML initialization errors are reported explicitly; select the heuristic or FIFO to continue without ML. Model pickle compatibility depends on the scikit-learn version used during training.
 

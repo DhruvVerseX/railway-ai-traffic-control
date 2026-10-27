@@ -1,4 +1,6 @@
 import { ArrowRight, Check, Database, ShieldCheck } from "lucide-react";
+import {animate, createScope, stagger} from 'animejs';
+import {useEffect, useRef} from 'react';
 
 export type Recommendation = {
   train_id: string;
@@ -89,8 +91,17 @@ export default function DecisionEvidence({
   const movement = [...events]
     .reverse()
     .find((event) => event.event === "SECTION_ENTERED");
+  const panel = useRef<HTMLElement>(null);
+  useEffect(()=>{
+    const scope=createScope({root:panel,mediaQueries:{reduceMotion:'(prefers-reduced-motion: reduce)'}}).add(self=>{
+      if(self&&!self.matches.reduceMotion) animate('.decision-pipeline article',{
+        opacity:[.45,1],y:[10,0],delay:stagger(75),duration:400,ease:'outQuad',
+      });
+    });
+    return()=>scope.revert();
+  },[rec?.train_id,trace?.policy]);
   return (
-    <section className="backend-evidence" aria-labelledby="evidence-title">
+    <section ref={panel} className="backend-evidence" aria-labelledby="evidence-title">
       <div className="evidence-heading">
         <div>
           <span className="chapter-label">FROM INPUT TO MOVEMENT</span>

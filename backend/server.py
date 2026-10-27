@@ -7,10 +7,12 @@ from dataclasses import asdict
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from threading import Lock
 from pathlib import Path
+from datetime import datetime, timezone
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-sys.path.insert(0, str(ROOT / 'backend/vendor'))
+# Prefer installed dependencies; bundled native wheels may target another Python version.
+sys.path.append(str(ROOT / 'backend/vendor'))
 from simulation.network import RailwayNetwork
 from simulation.simulator import RailwaySimulator
 from input.input_state import TrainDatabase
@@ -68,6 +70,7 @@ def snapshot(session):
             'station': station, 'metrics': station_metrics(sim, station),
             'automatic': isinstance(session['controller'], StationDispatcher),
             'occupancy': sim.section_occupancy, 'decision': session['decision'],
+            'policy': getattr(session['controller'], 'policy', None),
             'model_error': session['model_error'], 'kind': session['kind']}
 
 
@@ -88,6 +91,10 @@ class Handler(BaseHTTPRequestHandler):
         self.connection.settimeout(30)
 
     def respond(self, code, body):
+        if isinstance(body, dict):
+            body = {**body, 'backend': {'service': 'Python railway API', 'request_id': str(uuid.uuid4()),
+                                      'method': self.command, 'path': self.path,
+                                      'responded_at': datetime.now(timezone.utc).isoformat()}}
         data = json.dumps(body, default=lambda value: value.item() if hasattr(value, 'item') else str(value)).encode()
         self.send_response(code)
         self.send_header('Content-Type', 'application/json')
@@ -140,7 +147,9 @@ class Handler(BaseHTTPRequestHandler):
                     return self.respond(400, {'error': 'Unknown station'})
                 sim = station_simulator(network, database, station, count, seed)
                 StationInterlocking(sim, station)
-                sessions[key] = {'simulator': sim, 'controller': StationDispatcher(sim, database, station),
+                controller = StationDispatcher(sim, database, station)
+                controller.set_policy(body.get('policy', 'ml'))
+                sessions[key] = {'simulator': sim, 'controller': controller,
                                  'decision': None, 'kind': 'station_queue', 'station': station, 'model_error': None}
                 return self.respond(200, {'session': key, **snapshot(sessions[key])})
             session = sessions.get(body.get('session'))
@@ -154,10 +163,11 @@ class Handler(BaseHTTPRequestHandler):
                     sim.interlocking.set_signal(body.get('platform'), body.get('stop'))
                 session['decision'] = session['controller'].make_decision()
                 return self.respond(200, snapshot(session))
-            policy = body.get('policy', 'throughput')
-            if policy not in {'throughput', 'fifo', 'manual'}:
+            policy = body.get('policy', session['controller'].policy)
+            if policy not in {'ml', 'throughput', 'fifo', 'manual'}:
                 return self.respond(400, {'error': 'Unknown dispatch mode'})
-            session['controller'].policy = 'fifo' if policy == 'fifo' else 'throughput'
+            if policy != 'manual':
+                session['controller'].set_policy(policy)
             if self.path == '/advance':
                 minutes = body.get('minutes', 1)
                 if type(minutes) not in {int, float} or not 0 < minutes <= 5:
@@ -175,6 +185,8 @@ class Handler(BaseHTTPRequestHandler):
                     return self.respond(409, {'error': 'Train cannot move yet: check track occupancy, spacing, or readiness.'})
                 session['decision'] = session['controller'].make_decision()
             elif self.path in {'/decide', '/execute'}:
+                if self.path == '/execute' and policy == 'manual':
+                    return self.respond(400, {'error': 'Select a dispatch controller or release a train manually.'})
                 if session['controller'] is None:
                     return self.respond(503, {'error': 'AI model unavailable: ' + session['model_error']})
                 session['decision'] = session['controller'].control_step(sim) if self.path == '/execute' else session['controller'].make_decision(sim)
@@ -183,6 +195,8 @@ class Handler(BaseHTTPRequestHandler):
             self.respond(200, snapshot(session))
         except (ValueError, TypeError) as error:
             self.respond(400, {'error': str(error)})
+        except RuntimeError as error:
+            self.respond(503, {'error': str(error)})
         except Exception as error:
             self.respond(500, {'error': str(error)})
 

@@ -1,18 +1,37 @@
 """Station dispatch using the existing movement and safety model."""
 import copy
 import random
+from functools import lru_cache
 from input.input_state import TrafficState, TrainState
 from simulation.simulator import RailwaySimulator
 from simulation.train_movement import TrainMovementModel
 from simulation.conflict_detector import ConflictDetector
 
 
+@lru_cache(maxsize=1)
+def load_station_model(network, database):
+    from controller.ml_controller import MLTrainController
+    return MLTrainController(network, database)
+
+
 class StationDispatcher:
     def __init__(self, simulator, database, station, policy='throughput'):
         self.simulator, self.database, self.station, self.policy = simulator, database, station, policy
         self.detector = simulator._conflict_detector or ConflictDetector(simulator)
+        self.ml_controller = None
+
+    def set_policy(self, policy):
+        if policy not in {'ml', 'throughput', 'fifo'}:
+            raise ValueError('Unknown dispatch mode')
+        if policy == 'ml' and self.ml_controller is None:
+            try:
+                self.ml_controller = load_station_model(self.simulator.network, self.database)
+            except Exception as error:
+                raise RuntimeError(f'V2 model unavailable: {error}. Select the heuristic or install backend/requirements.txt.') from error
+        self.policy = policy
 
     def make_decision(self, simulator=None):
+        self.set_policy(self.policy)
         sim = self.simulator
         candidates = []
         for train in sim.trains.values():
@@ -29,6 +48,10 @@ class StationDispatcher:
             conflict = self.detector.check_section_conflict(train.train_id, sid)
             interlocking = getattr(sim, 'interlocking', None)
             station_block = interlocking.blocked_reason(train.train_id) if interlocking else None
+            checks = [{'name': 'Section occupancy, direction and headway', 'passed': not conflict['conflict'],
+                       'reason': conflict['reason'] if conflict['conflict'] else 'Section traffic checks passed.'},
+                      {'name': 'Platform, signal and exit switch', 'passed': not bool(station_block),
+                       'reason': station_block or 'Station interlocking permits this movement.'}]
             if station_block:
                 conflict = {'conflict': True, 'reason': station_block, 'required_wait_min': 0}
             candidates.append({'train_id': train.train_id, 'next_section': sid,
@@ -36,9 +59,16 @@ class StationDispatcher:
                                'ready': train.entry_time_min, 'safe': not conflict['conflict'],
                                'conflict_reason': conflict['reason'] if conflict['conflict'] else None,
                                'required_wait_min': conflict['required_wait_min'],
-                               'at_station': train.current_station == self.station})
+                               'at_station': train.current_station == self.station, 'checks': checks})
+            if self.policy == 'ml':
+                features = self.ml_controller.extract_features(sim, train.train_id)
+                prediction = self.ml_controller.predict(features)
+                candidates[-1].update(ml_action=str(prediction['action']),
+                                      probabilities=prediction['probabilities'], features=features)
         if self.policy == 'fifo':
             candidates.sort(key=lambda c: (c['ready'], c['train_id']))
+        elif self.policy == 'ml':
+            candidates.sort(key=lambda c: (-c['probabilities']['RELEASE'], c['ready'], c['train_id']))
         else:
             # Shorter occupancy frees the constrained section sooner; aging prevents starvation.
             candidates.sort(key=lambda c: (0 if c['waiting_min'] >= 45 else 1,
@@ -46,13 +76,18 @@ class StationDispatcher:
                                            c['ready'], c['train_id']))
         reserved = set()
         for candidate in candidates:
-            if not candidate['safe']:
+            if self.policy == 'ml' and candidate['ml_action'] == 'HOLD':
+                candidate.update(final_action='HOLD', reason='Random Forest V2 recommends HOLD.')
+            elif not candidate['safe']:
                 candidate.update(final_action='HOLD', reason=candidate['conflict_reason'])
             elif candidate['next_section'] in reserved:
                 candidate.update(final_action='HOLD', reason='Another train is selected for this track. It must clear first.')
+                candidate['checks'].append({'name': 'Dispatch reservation', 'passed': False, 'reason': candidate['reason']})
             else:
                 reserved.add(candidate['next_section'])
-                reason = ('It has waited at least 45 minutes, so it gets the next safe turn.'
+                reason = ('Random Forest V2 recommends RELEASE; safety checks passed.'
+                          if self.policy == 'ml' else
+                          'It has waited at least 45 minutes, so it gets the next safe turn.'
                           if self.policy != 'fifo' and candidate['waiting_min'] >= 45 else
                           f"It clears this section in {candidate['clearance_min']:.1f} minutes, making room for the next train sooner."
                           if self.policy != 'fifo' else 'First ready, first served on this available track.')
@@ -60,22 +95,41 @@ class StationDispatcher:
         releases = [c for c in candidates if c['final_action'] == 'RELEASE']
         return {'time_min': sim.current_time_min, 'recommendations': candidates,
                 'selected_action': releases[0] if releases else None,
-                'selected_actions': releases, 'policy': self.policy}
+                'selected_actions': releases, 'policy': self.policy,
+                'controller': 'Random Forest V2' if self.policy == 'ml' else 'FIFO' if self.policy == 'fifo' else 'Shortest-clearance heuristic',
+                'model_file': self.ml_controller.model_path.name if self.policy == 'ml' else None}
 
     def control_step(self, simulator=None):
         decision = self.make_decision()
+        decision['metrics_before'] = station_metrics(self.simulator, self.station)
+        event_start = len(self.simulator.history)
         released = []
-        for candidate in decision['selected_actions']:
-            if self.simulator.start_train(candidate['train_id']):
-                released.append(candidate['train_id'])
+        for candidate in decision['recommendations']:
+            candidate['executed_action'] = 'HOLD'
+            candidate['execution_reason'] = candidate['reason']
+            if candidate['final_action'] != 'RELEASE':
+                continue
+            tid = candidate['train_id']
+            if self.simulator.start_train(tid):
+                released.append(tid)
+                candidate.update(executed_action='RELEASE', execution_reason='Simulator accepted the movement and recorded SECTION_ENTERED.')
+            else:
+                interlocking = getattr(self.simulator, 'interlocking', None)
+                conflict = self.detector.check_section_conflict(tid, candidate['next_section'])
+                reason = (interlocking.blocked_reason(tid) if interlocking else None) or conflict.get('reason') or 'Simulator rejected the movement at execution time.'
+                candidate.update(execution_reason=reason)
+                candidate['checks'].append({'name': 'Execution recheck', 'passed': False, 'reason': reason})
         decision['execution'] = {'executed': bool(released), 'released': released,
                                  'reason': f'{len(released)} trains dispatched safely.' if released else 'Waiting for a safe track opening.'}
+        decision['metrics_after'] = station_metrics(self.simulator, self.station)
+        decision['execution']['events'] = self.simulator.history[event_start:]
         return decision
 
     def advance(self, minutes):
         sim = self.simulator
         target = sim.current_time_min + minutes
         last = self.control_step()
+        steps = [last]
         while sim.current_time_min < target - 1e-8:
             times = [target]
             if getattr(sim, 'interlocking', None):
@@ -90,6 +144,8 @@ class StationDispatcher:
             future = [t for t in times if t > sim.current_time_min + 1e-8]
             sim.advance_time(min(future) - sim.current_time_min)
             last = self.control_step()
+            steps.append(last)
+        last['steps'] = steps[:-1]
         return last
 
 

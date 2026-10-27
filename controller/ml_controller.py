@@ -79,7 +79,8 @@ class MLTrainController:
         delay_min = float(train.delay_min)
         entry_time_min = float(train.entry_time_min)
 
-        waiting = 1 if train.status == "WAITING" else 0
+        waiting = int(train.status in {'WAITING', 'NOT_ENTERED', 'APPROACHING'}
+                      and simulator.current_time_min >= max(train.entry_time_min, train.ready_time_min))
         running = 1 if train.status == "RUNNING" else 0
         arrived = 1 if train.status == "ARRIVED" else 0
 
@@ -123,8 +124,8 @@ class MLTrainController:
             for other_id, other_train in simulator.trains.items()
             if (
                 other_id != train_id
-                and other_train.status == "WAITING"
-                and simulator.current_time_min >= other_train.entry_time_min
+                and other_train.status in {'WAITING', 'NOT_ENTERED', 'APPROACHING'}
+                and simulator.current_time_min >= max(other_train.entry_time_min, other_train.ready_time_min)
             )
         ]
 

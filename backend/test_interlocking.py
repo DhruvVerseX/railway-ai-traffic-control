@@ -53,4 +53,38 @@ class InterlockingTests(unittest.TestCase):
         self.assertEqual(yard.assignments[tid],4)
         self.assertTrue(sim.start_train(tid))
 
+    def test_platform_refills_after_exit_clearance_while_section_stays_occupied(self):
+        for train in self.sim.trains.values():
+            train.entry_time_min = 0
+        first = next(iter(self.yard.assignments))
+        platform = self.yard.assignments[first]
+        self.assertTrue(self.sim.start_train(first))
+        section = self.sim.trains[first].current_section
+        self.sim.advance_time(.99)
+        self.assertEqual(self.yard.snapshot()['assignments'][first], platform)
+        self.sim.advance_time(.01)
+        state = self.yard.snapshot()
+        self.assertNotIn(first, state['assignments'])
+        self.assertNotIn(first, state['outside'])
+        self.assertEqual(len(state['assignments']), 4)
+        replacement = next(tid for tid, p in state['assignments'].items() if p == platform)
+        self.assertEqual(self.sim.section_occupancy[section], first)
+        self.assertEqual(self.sim.trains[first].status, 'RUNNING')
+        self.assertEqual(len(set(state['assignments'].values())), 4)
+        self.yard.set_signal(platform, True)
+        self.assertFalse(self.sim.start_train(replacement))
+        self.yard.set_signal(platform, False)
+        same_section = next(tid for tid in state['assignments']
+                            if self.sim.movement_model.build_movement(tid).section_sequence[self.sim.trains[tid].section_index] == section)
+        self.assertFalse(self.sim.start_train(same_section))
+
+    def test_platform_refills_when_next_train_reaches_station(self):
+        first = next(iter(self.yard.assignments))
+        platform = self.yard.assignments[first]
+        self.assertTrue(self.sim.start_train(first))
+        self.sim.advance_time(1)
+        self.assertIsNone(self.yard.snapshot()['platforms'][platform - 1]['train_id'])
+        self.sim.advance_time(1)
+        self.assertIsNotNone(self.yard.snapshot()['platforms'][platform - 1]['train_id'])
+
 if __name__=='__main__':unittest.main()

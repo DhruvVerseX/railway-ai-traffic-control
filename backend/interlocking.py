@@ -11,12 +11,18 @@ class StationInterlocking:
 
     def sync(self):
         sim = self.simulator
+        cleared = {e['train_id'] for e in sim.history
+                   if e['event'] == 'SECTION_ENTERED' and e.get('from_station') == self.station
+                   and e['time_min'] + 1.0 <= sim.current_time_min + 1e-8}
         for tid in list(self.assignments):
             train = sim.trains[tid]
-            if train.current_station != self.station or train.status == 'ARRIVED':
+            if (train.current_station != self.station or train.status == 'ARRIVED'
+                    or (train.status == 'RUNNING' and tid in cleared)):
                 del self.assignments[tid]
         for train in sim.trains.values():
-            if train.current_station != self.station or train.status == 'ARRIVED':
+            if train.current_station != self.station or train.status in {'ARRIVED', 'RUNNING'}:
+                continue
+            if train.entry_time_min > sim.current_time_min + 1e-8:
                 continue
             if train.train_id not in self.assignments:
                 used = set(self.assignments.values())
@@ -59,9 +65,10 @@ class StationInterlocking:
     def set_signal(self, platform, stop):
         if type(platform) is not int or not 1 <= platform <= self.platforms or type(stop) is not bool:
             raise ValueError('Invalid signal command.')
+        self.sync()
         occupant = next((tid for tid, p in self.assignments.items() if p == platform), None)
         if occupant and self.simulator.trains[occupant].status == 'RUNNING':
-            raise ValueError('Departure route is locked until its train clears the section.')
+            raise ValueError('Departure route is locked until its train clears the station exit switch.')
         if stop:
             self.stopped_signals.add(platform)
         else:
@@ -85,7 +92,7 @@ class StationInterlocking:
                     section = self.simulator.network.get_section(route)
                     destination = section.to_station if section.from_station == self.station else section.from_station
                 if locked:
-                    reason = 'Route locked: train is clearing the outgoing section.'
+                    reason = 'Route locked: train is clearing the station exit switch.'
                 elif platform in self.stopped_signals:
                     reason = 'Signal manually held at red.'
                 elif self.simulator.current_time_min < max(train.entry_time_min, train.ready_time_min):
@@ -103,4 +110,4 @@ class StationInterlocking:
                            'section': route, 'destination': destination, 'reason': reason})
         return {'platforms': result, 'assignments': dict(self.assignments),
                 'outside': [t.train_id for t in self.simulator.trains.values()
-                            if t.current_station == self.station and t.status != 'ARRIVED' and t.train_id not in self.assignments]}
+                            if t.current_station == self.station and t.status not in {'ARRIVED', 'RUNNING'} and t.train_id not in self.assignments]}

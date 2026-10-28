@@ -13,6 +13,9 @@ export default function NetworkView() {
   const graph=illustrative?illustrativeNetwork:network;
   const nodes=useMemo(()=>graph?networkLayout(graph,snapshot?.station??'MTJ'):[],[graph,snapshot?.station]);
   const svg=useRef<SVGSVGElement>(null);
+  const map=useRef<HTMLDivElement>(null);
+  const focusedToken=useRef(focusToken);
+  const [fullscreenError,setFullscreenError]=useState('');
   const [camera,setCamera]=useState({x:0,y:0,k:1});
   const drag=useRef<{x:number;y:number}|null>(null);
   const point=(train:Snapshot['trains'][number])=>{
@@ -23,6 +26,8 @@ export default function NetworkView() {
     return {x:from.x+((to?.x??from.x)-from.x)*p,y:from.y+((to?.y??from.y)-from.y)*p};
   };
   useEffect(()=>{
+    if(focusedToken.current===focusToken)return;
+    focusedToken.current=focusToken;
     if(!selected||!focusToken)return;
     const train=snapshot?.trains.find(t=>t.train_id===selected);
     const from=nodes.find(n=>n.station_code===train?.current_station),to=nodes.find(n=>n.station_code===train?.next_station);
@@ -49,9 +54,10 @@ export default function NetworkView() {
   if(!graph)return <div className="control-empty">Waiting for network JSON from the backend.</div>;
   const detailed=camera.k>=1.6,highlighted=hovered??selected;
   const zoom=(factor:number)=>setCamera(c=>{const k=Math.max(.5,Math.min(4,c.k*factor));return {k,x:500-(500-c.x)*k/c.k,y:300-(300-c.y)*k/c.k};});
-  return <div className="network-view">
+  return <div ref={map} className="network-view">
     <div className="control-view-heading"><div><span className="control-kicker">REGION / {graph.stations.length} STATIONS</span><h2>Network overview</h2></div><span>{illustrative?'Illustrative static network':'Backend topology · schematic layout'}</span></div>
-    <div className="network-toolbar"><span>{detailed?'Detailed · names & available station signals':'Overview · stations & section congestion'}</span><div><button aria-label="Zoom out" onClick={()=>zoom(.8)}>−</button><span>{Math.round(camera.k*100)}%</span><button aria-label="Zoom in" onClick={()=>zoom(1.25)}>+</button><button onClick={()=>setCamera({x:0,y:0,k:1})}>Fit network</button></div></div>
+    <div className="network-toolbar"><span>{detailed?'Detailed · names & available station signals':'Overview · stations & section congestion'}</span><div><button aria-label="Zoom out" onClick={()=>zoom(.8)}>−</button><span>{Math.round(camera.k*100)}%</span><button aria-label="Zoom in" onClick={()=>zoom(1.25)}>+</button><button onClick={()=>setCamera({x:0,y:0,k:1})}>Fit network</button><button className="network-expand" onClick={()=>{setFullscreenError('');void map.current?.requestFullscreen().catch(()=>setFullscreenError('Full screen is unavailable in this browser. Use Fit network to show all stations.'));}}>Expand map</button><button className="network-collapse" onClick={()=>void document.exitFullscreen()}>Exit full screen</button></div></div>
+    {fullscreenError&&<p className="control-footnote" role="alert">{fullscreenError}</p>}
     <svg ref={svg} className="network-svg" viewBox="0 0 1000 600" role="group" tabIndex={0} aria-label="Zoomable railway network. Drag or use arrow keys to pan; use the wheel or zoom buttons to zoom. Home fits the network."
       onKeyDown={e=>{if(e.target!==e.currentTarget)return;const delta:Record<string,[number,number]>={ArrowLeft:[40,0],ArrowRight:[-40,0],ArrowUp:[0,40],ArrowDown:[0,-40]};if(delta[e.key]){e.preventDefault();const [x,y]=delta[e.key];setCamera(c=>({...c,x:c.x+x,y:c.y+y}));}else if(e.key==='Home'){e.preventDefault();setCamera({x:0,y:0,k:1});}}}
       onPointerDown={e=>{if(e.button!==0)return;svg.current?.setPointerCapture(e.pointerId);drag.current={x:e.clientX,y:e.clientY};}}

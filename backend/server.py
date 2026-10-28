@@ -1,6 +1,7 @@
 """Local API adapter for the existing railway simulator. Run from the project root."""
 import csv
 import json
+import os
 import sys
 import uuid
 from dataclasses import asdict
@@ -202,5 +203,7 @@ class Handler(BaseHTTPRequestHandler):
 
 
 if __name__ == '__main__':
-    print('Railway API listening on http://127.0.0.1:8000', flush=True)
-    ThreadingHTTPServer(('127.0.0.1', 8000), Handler).serve_forever()
+    host = os.environ.get('HOST', '127.0.0.1')
+    port = int(os.environ.get('PORT', '8000'))
+    print(f'Railway API listening on http://{host}:{port}', flush=True)
+    ThreadingHTTPServer((host, port), Handler).serve_forever()

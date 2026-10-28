@@ -20,6 +20,31 @@ npm run dev
 
 Open http://127.0.0.1:3000. The API listens only on 127.0.0.1:8000; Next.js forwards requests through `/api/railway`. Set `RAILWAY_API_URL` in `frontend/.env.local` if using a different backend port.
 
+## Deploy: Vercel frontend + Render backend
+
+1. Push the deployment files to your GitHub branch. In Render, create a Blueprint
+   from this repository and branch using `render.yaml`. Keep the repository root
+   as the service root: the API needs `data/`, `simulation/`, and `ml/models/`.
+   The Blueprint uses Python 3.12, the free plan, and `/network` for health checks.
+2. Wait for Render's `/network` endpoint to return JSON. Copy the service HTTPS URL.
+3. Import the repository into Vercel with **Root Directory = `frontend`** and the
+   **Next.js** framework preset. Keep the default install/build/output settings.
+4. Add `RAILWAY_API_URL=https://YOUR-SERVICE.onrender.com` (no trailing slash) to
+   Vercel's Production and Preview environments, then deploy or redeploy.
+   This is a server-only variable: do not prefix it with `NEXT_PUBLIC_`.
+5. Verify `/api/railway/network` on Vercel, then load a scenario at `/control`,
+   advance it, and compare two controllers.
+
+`HOST` and `PORT` configure only the API listener. Local defaults remain
+`127.0.0.1:8000`; Render sets `PORT` and the Blueprint sets `HOST=0.0.0.0`.
+No simulator or model behavior changes for hosting.
+
+Free Render services sleep when idle and may take about a minute to wake, longer
+than the frontend's 30-second API timeout. Retry after the API is awake. Sessions
+are stored in process memory and disappear on restart/redeploy; keep one API
+instance. This is a public educational demo without authentication, not a live
+railway system. An always-running paid instance requires a separate plan choice.
+
 ## Present the project
 
 1. Select **Mathura Junction** and a queue size (12 trains by default).

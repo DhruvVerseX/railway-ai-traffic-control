@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: railmind-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: python backend/server.py
+    healthCheckPath: /network
+    envVars:
+      - key: HOST
+        value: 0.0.0.0
+      - key: PYTHONUNBUFFERED
+        value: "1"

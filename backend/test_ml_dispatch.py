@@ -53,11 +53,75 @@ class MLDispatchTests(unittest.TestCase):
         self.assertEqual(entered, decision['execution']['released'])
         self.assertEqual(decision['metrics_after']['departed'] - decision['metrics_before']['departed'], 1)
 
-    def test_model_hold_is_not_replaced_by_heuristic_release(self):
+    def test_all_model_holds_release_best_safe_train_per_clear_section(self):
+        with patch.object(self.dispatcher.ml_controller, 'predict', return_value={
+            'action': 'HOLD', 'probabilities': {'HOLD': 0.9, 'RELEASE': 0.1}}):
+            decision = self.dispatcher.control_step()
+        self.assertEqual(len(decision['execution']['released']), 1)
+        selected = decision['selected_actions']
+        self.assertEqual(len({r['next_section'] for r in selected}), len(selected))
+        for rec in selected:
+            self.assertEqual(rec['ml_action'], 'HOLD')
+            self.assertTrue(all(c['passed'] for c in rec['checks'] if c['name'] != 'Execution recheck'))
+            self.assertIn('dispatch override', rec['reason'])
+        released = next(r for r in selected if r['executed_action'] == 'RELEASE')
+        self.assertIn('dispatch override', released['execution_reason'])
+
+    def test_occupied_section_does_not_block_other_clear_section(self):
+        first = next(iter(self.yard.assignments))
+        self.assertTrue(self.sim.start_train(first))
+        occupied = self.sim.trains[first].current_section
+        self.sim.advance_time(1)
+        with patch.object(self.dispatcher.ml_controller, 'predict', return_value={
+            'action': 'HOLD', 'probabilities': {'HOLD': 0.9, 'RELEASE': 0.1}}):
+            decision = self.dispatcher.control_step()
+        blocked = [r for r in decision['recommendations'] if r['next_section'] == occupied]
+        self.assertTrue(blocked)
+        self.assertTrue(all(r['final_action'] == 'HOLD' for r in blocked))
+        self.assertEqual(len(decision['execution']['released']), 1)
+        self.assertNotEqual(self.sim.trains[decision['execution']['released'][0]].current_section, occupied)
+
+    def test_clear_track_override_uses_highest_model_probability(self):
+        def predict(features):
+            release = features['max_speed_kmph'] / 1000
+            return {'action': 'HOLD', 'probabilities': {'HOLD': 1 - release, 'RELEASE': release}}
+        with patch.object(self.dispatcher.ml_controller, 'predict', side_effect=predict):
+            decision = self.dispatcher.make_decision()
+        for selected in decision['selected_actions']:
+            eligible = [r for r in decision['recommendations'] if r['safe'] and r['next_section'] == selected['next_section']]
+            self.assertEqual(selected['probabilities']['RELEASE'], max(r['probabilities']['RELEASE'] for r in eligible))
+
+    def test_model_release_is_preferred_over_hold_on_same_section(self):
+        tid = next(iter(self.yard.assignments))
+        speed = float(server.database.get_train(tid)['max_speed_kmph'])
+        def predict(features):
+            release = .8 if features['max_speed_kmph'] == speed else .2
+            return {'action': 'RELEASE' if release > .5 else 'HOLD',
+                    'probabilities': {'HOLD': 1 - release, 'RELEASE': release}}
+        with patch.object(self.dispatcher.ml_controller, 'predict', side_effect=predict):
+            decision = self.dispatcher.make_decision()
+        for selected in decision['selected_actions']:
+            peers = [r for r in decision['recommendations'] if r['safe'] and r['next_section'] == selected['next_section']]
+            if any(r['ml_action'] == 'RELEASE' for r in peers):
+                self.assertEqual(selected['ml_action'], 'RELEASE')
+
+    def test_clear_track_override_respects_red_signals(self):
+        for platform in range(1, 5):
+            self.yard.set_signal(platform, True)
         with patch.object(self.dispatcher.ml_controller, 'predict', return_value={
             'action': 'HOLD', 'probabilities': {'HOLD': 0.9, 'RELEASE': 0.1}}):
             decision = self.dispatcher.control_step()
         self.assertEqual(decision['execution']['released'], [])
+        self.assertTrue(all(r['final_action'] == 'HOLD' for r in decision['recommendations']))
+
+    def test_seed_42_queue_keeps_dispatching_after_first_section_clears(self):
+        sim = station_simulator(server.network, server.database, count=12, seed=42)
+        StationInterlocking(sim, 'MTJ')
+        dispatcher = StationDispatcher(sim, server.database, 'MTJ', 'ml')
+        dispatcher.advance(28)
+        departures = [e for e in sim.history if e['event'] == 'SECTION_ENTERED' and e.get('from_station') == 'MTJ']
+        self.assertGreater(len(departures), 2)
+        self.assertTrue(any(e['time_min'] > 15 for e in departures))
 
     def test_ready_approaching_train_is_encoded_as_waiting(self):
         train = next(t for t in self.sim.trains.values() if t.status == 'APPROACHING')

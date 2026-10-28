@@ -55,3 +55,21 @@ test('real advance response preserves names, assignments, aspects and outside se
   assert.equal(stationState({...response,yard:null}).platforms.length,0);
   assert.equal(delayColor(0),'#4e8b69');assert.equal(delayColor(5),'#b28235');assert.equal(delayColor(5.1),'#bd6650');
 });
+
+test('section occupancy survives platform release and clears only with the backend snapshot',()=>{
+  const response=JSON.parse(readFileSync(new URL('./advance-sample.json',import.meta.url),'utf8'));
+  const [section,occupant]=Object.entries(response.occupancy)[0];
+  assert.ok(occupant);
+  const initial=stationState(response);
+  const refilled=structuredClone(response);
+  refilled.time+=1;
+  delete refilled.yard.assignments[occupant];
+  refilled.yard.platforms.forEach(p=>{if(p.train_id===occupant){p.train_id=null;p.locked=false;}});
+  const scene=stationState(refilled,initial);
+  assert.equal(scene.platforms.some(p=>p.train_id===occupant),false);
+  assert.equal(scene.occupancy[section],occupant);
+  const cleared=structuredClone(refilled);
+  delete cleared.occupancy[section];
+  assert.equal(stationState(cleared,scene).occupancy[section],undefined);
+  assert.equal(stationState(response).occupancy[section],occupant);
+});

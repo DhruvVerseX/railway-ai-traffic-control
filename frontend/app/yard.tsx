@@ -6,12 +6,13 @@ import {delayColor,type StationState} from './station-state';
 export default function Yard({state,station,exits,selected,onSelect,onCommand,disabled,playing,speed,aiWarnings=[],replay=false}:{state:StationState|null;station:string;exits:{destination:string;section:string}[];selected:string|null;onSelect:(id:string)=>void;onCommand:(path:string,body:object)=>void;disabled:boolean;playing:boolean;speed:number;aiWarnings?:string[];replay?:boolean}){
  const scene=useRef<HTMLDivElement>(null);
  const lockedRoutes=state?.platforms.filter(p=>p.locked).map(p=>p.platform).join(',')||'';
+ const occupiedSections=JSON.stringify(state?.occupancy??{});
  useEffect(()=>{
   const scope=createScope({root:scene,mediaQueries:{reduceMotion:'(prefers-reduced-motion: reduce)'}}).add(self=>{
    if(self&&!self.matches.reduceMotion&&playing) animate('.yard-route-active',{strokeDashoffset:[24,0],duration:1200/speed,ease:'linear',loop:true});
   });
   return()=>scope.revert();
- },[lockedRoutes,playing,speed]);
+ },[lockedRoutes,occupiedSections,playing,speed]);
  const platforms=state?.platforms.length?state.platforms:Array.from({length:4},(_,i)=>({platform:i+1,train_id:null,aspect:'RED',held:false,locked:false,section:null,destination:null,reason:'Load trains to begin.'}));
  const trains=state?.trains??[];
  const label=(id:string)=>{const t=trains.find(t=>t.id===id);return t?`${t.name} · ${t.id}`:id};
@@ -22,7 +23,7 @@ export default function Yard({state,station,exits,selected,onSelect,onCommand,di
  const chosen=selected?platforms.find(p=>p.train_id===selected):undefined;
  const train=trains.find(t=>t.id===selected);
  return <div ref={scene} className="station-yard">
-  <div className="yard-title"><b>Station tracks</b><span><i className="green-light"/> Clear <i className="red-light"/> Stop <i className="route-light"/> Locked route</span></div>
+  <div className="yard-title"><b>Station tracks</b><span><i className="green-light"/> Clear <i className="red-light"/> Stop <i className="route-light"/> Exit lock <i className="route-light" style={{background:'#b28235'}}/> Occupied section</span></div>
   <div className="yard-scroll"><svg viewBox="0 0 1100 490" role="group" aria-label="Four station platform tracks with departure signals and switch routes">
    <defs><pattern id="yard-block-hatch" width="10" height="10" patternUnits="userSpaceOnUse"><rect width="10" height="10" fill="#f8e7ca"/><path d="M-2 2L2 -2M0 10L10 0M8 12L12 8" stroke="#a36c40" strokeWidth="3"/></pattern><pattern id="yard-grass" width="35" height="35" patternUnits="userSpaceOnUse"><circle cx="2" cy="2" r="1" fill="#dce3cf"/></pattern><filter id="train-shadow"><feDropShadow dx="0" dy="3" stdDeviation="3" floodOpacity=".15"/></filter></defs>
    <rect width="1100" height="490" fill="#eff2e4"/><rect width="1100" height="490" fill="url(#yard-grass)"/>
@@ -47,7 +48,18 @@ export default function Yard({state,station,exits,selected,onSelect,onCommand,di
      <text className="yard-train-label" x="82" y={y-23} fontSize="14" fill="#526044">{p.train_id?label(p.train_id):'Empty'}</text>
     </g>;
    })}
-   {exits.map((e,i)=><g key={e.section}><path className="yard-exit-route" d={`M830 250 C900 250,900 ${exitY(i)},1050 ${exitY(i)}`} fill="none" stroke={platforms.some(p=>p.locked&&p.section===e.section)?'#599272':'#bdc6b0'} strokeWidth="7"/><path d={`M830 250 C900 250,900 ${exitY(i)},1050 ${exitY(i)}`} fill="none" stroke="#f2f5e9" strokeWidth="2"/>{state?.mock?.blockedSections.includes(e.section)&&<path className="mock-track-block" d={`M830 250 C900 250,900 ${exitY(i)},1050 ${exitY(i)}`} fill="none" stroke="url(#yard-block-hatch)" strokeWidth="18"><title>CLIENT MOCK · blocked {e.section}</title></path>}<text x="1060" y={exitY(i)-22} textAnchor="end" fill="#526044" fontSize="14">To {e.destination} · {e.section}</text></g>)}
+   {exits.map((e,i)=>{
+    const occupant=state?.occupancy[e.section],path=`M830 250 C900 250,900 ${exitY(i)},1050 ${exitY(i)}`;
+    return <g key={e.section}>
+     <title>{occupant?`${e.section} occupied by ${label(occupant)}. Locked until this train clears the section.`:`${e.section}: section unoccupied; departure still requires signal, switch and headway checks.`}</title>
+     <path className="yard-exit-route" d={path} fill="none" stroke={occupant?'#b28235':'#bdc6b0'} strokeWidth={occupant?11:7}/>
+     <path d={path} fill="none" stroke="#f2f5e9" strokeWidth="2"/>
+     {occupant&&<path className="yard-route-active" d={path} fill="none" stroke="#f4d59b" strokeWidth="3" strokeDasharray="6 18"/>}
+     {state?.mock?.blockedSections.includes(e.section)&&<path className="mock-track-block" d={path} fill="none" stroke="url(#yard-block-hatch)" strokeWidth="18"><title>CLIENT MOCK · blocked {e.section}</title></path>}
+     <text x="1060" y={exitY(i)-22} textAnchor="end" fill="#526044" fontSize="14">To {e.destination} · {e.section}</text>
+     <text className="yard-section-status" x="1060" y={exitY(i)+22} textAnchor="end" fill={occupant?'#8a6227':'#526044'} fontSize="13" fontWeight={occupant?600:400}>{occupant?`Occupied · ${occupant}`:'Section unoccupied'}</text>
+    </g>;
+   })}
    <g transform="translate(830,250)"><title>{lockedExit?`Exit switch aligned to ${lockedExit.destination}`:'Exit switch idle'}</title><circle r="8" fill="#f6f7ed" stroke="#829a70" strokeWidth="2"/><path className="yard-switch" d="M-15 0H27" stroke="#365f46" strokeWidth="4" style={{transform:`rotate(${lockedExit?Math.atan2(exitY(destinations.indexOf(lockedExit.destination||''))-250,100)*180/Math.PI:0}deg)`}}/></g>
    {trains.filter(t=>t.platform!==null).map(t=><YardTrain key={t.id} id={t.id} name={t.name} departing={t.departing} platform={t.platform!} exitY={exitY(destinations.indexOf(t.destination||''))} color={delayColor(t.delay)} type={t.type} aiWarning={aiWarnings.includes(t.id)} mockWarning={t.mockWarning} staticProgress={replay||t.mockWarning?(t.status==='RUNNING'?t.sectionProgress:0):undefined} selected={selected===t.id} onSelect={onSelect} playing={playing} speed={speed}/>)}
   </svg></div>

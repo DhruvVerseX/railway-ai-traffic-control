@@ -17,6 +17,7 @@ export type StationTrain = {
 };
 export type StationState = {
   time:number; trains:StationTrain[]; platforms:YardState['platforms'];
+  occupancy:Record<string,string>;
   signals:{platform:number;aspect:string}[]; events:MovementEvent[];
   mock?:{blockedSections:string[];failedPlatforms:number[]};
 };
@@ -28,10 +29,10 @@ export function delayColor(delay:number) {
 }
 
 // The API has section progress, not station coordinates or arrival progress.
-export function stationState(response:{time:number;station:string;trains:BackendTrain[];yard:YardState|null;events:MovementEvent[]}, previous?:StationState):StationState {
+export function stationState(response:{time:number;station:string;trains:BackendTrain[];yard:YardState|null;events:MovementEvent[];occupancy:Record<string,string>}, previous?:StationState):StationState {
   const platforms=response.yard?.platforms ?? [];
   return {
-    time:response.time, platforms, events:response.events,
+    time:response.time, platforms, events:response.events, occupancy:response.occupancy,
     signals:platforms.map(p=>({platform:p.platform,aspect:p.aspect})),
     trains:response.trains.map(t=>{
       const assigned=platforms.find(p=>p.platform===response.yard?.assignments[t.train_id]);

@@ -75,17 +75,23 @@ class StationDispatcher:
                                            -c['waiting_min'] if c['waiting_min'] >= 45 else c['clearance_min'],
                                            c['ready'], c['train_id']))
         reserved = set()
+        model_releases = {c['next_section'] for c in candidates
+                          if c['safe'] and c.get('ml_action') == 'RELEASE'}
         for candidate in candidates:
-            if self.policy == 'ml' and candidate['ml_action'] == 'HOLD':
-                candidate.update(final_action='HOLD', reason='Random Forest V2 recommends HOLD.')
-            elif not candidate['safe']:
+            if not candidate['safe']:
                 candidate.update(final_action='HOLD', reason=candidate['conflict_reason'])
+            elif (self.policy == 'ml' and candidate['ml_action'] == 'HOLD'
+                  and candidate['next_section'] in model_releases):
+                candidate.update(final_action='HOLD', reason='Random Forest V2 prefers another safe train for this section.')
             elif candidate['next_section'] in reserved:
                 candidate.update(final_action='HOLD', reason='Another train is selected for this track. It must clear first.')
                 candidate['checks'].append({'name': 'Dispatch reservation', 'passed': False, 'reason': candidate['reason']})
             else:
                 reserved.add(candidate['next_section'])
-                reason = ('Random Forest V2 recommends RELEASE; safety checks passed.'
+                reason = ('Clear-track dispatch override: V2 recommends HOLD for every safe train on this section. '
+                          'Release the train with the highest V2 RELEASE probability; safety checks passed.'
+                          if self.policy == 'ml' and candidate['ml_action'] == 'HOLD' else
+                          'Random Forest V2 recommends RELEASE; safety checks passed.'
                           if self.policy == 'ml' else
                           'It has waited at least 45 minutes, so it gets the next safe turn.'
                           if self.policy != 'fifo' and candidate['waiting_min'] >= 45 else
@@ -112,7 +118,7 @@ class StationDispatcher:
             tid = candidate['train_id']
             if self.simulator.start_train(tid):
                 released.append(tid)
-                candidate.update(executed_action='RELEASE', execution_reason='Simulator accepted the movement and recorded SECTION_ENTERED.')
+                candidate.update(executed_action='RELEASE', execution_reason=candidate['reason'] + ' Simulator accepted the movement and recorded SECTION_ENTERED.')
             else:
                 interlocking = getattr(self.simulator, 'interlocking', None)
                 conflict = self.detector.check_section_conflict(tid, candidate['next_section'])

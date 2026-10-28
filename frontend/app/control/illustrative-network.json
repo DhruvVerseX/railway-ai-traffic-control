@@ -1,0 +1,15 @@
+{
+  "stations": [
+    {"station_code":"MTJ","station_name":"Mathura Junction"},
+    {"station_code":"PWL","station_name":"Palwal"},
+    {"station_code":"BTE","station_name":"Bharatpur"},
+    {"station_code":"AGRA","station_name":"Agra"},
+    {"station_code":"KSG","station_name":"Kasganj"}
+  ],
+  "sections": [
+    {"section_id":"illustrative-PWL","from_station":"MTJ","to_station":"PWL","distance_km":0},
+    {"section_id":"illustrative-BTE","from_station":"MTJ","to_station":"BTE","distance_km":0},
+    {"section_id":"illustrative-AGRA","from_station":"MTJ","to_station":"AGRA","distance_km":0},
+    {"section_id":"illustrative-KSG","from_station":"MTJ","to_station":"KSG","distance_km":0}
+  ]
+}

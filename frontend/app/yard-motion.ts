@@ -1,4 +1,7 @@
-// Match the SVG track curves; the train leaves the illustration before its section journey ends.
+// Exact cubic Bezier equivalents of the SVG track paths.
+export function arrivalPose(progress:number,platform:number) {
+  return {x:-150+555*Math.max(0,Math.min(1,progress+1)),y:125+(platform-1)*85,angle:0,visible:true};
+}
 export function yardPose(progress: number, platform: number, exitY: number) {
   const v = Math.max(0, Math.min(1, progress * 3));
   const startY = 125 + (platform - 1) * 85;

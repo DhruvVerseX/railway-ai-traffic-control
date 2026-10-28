@@ -1,0 +1,216 @@
+{
+  "time": 1.0,
+  "events": [
+    {
+      "time_min": 0.0,
+      "event": "SECTION_ENTERED",
+      "train_id": "T012",
+      "section_id": "S04",
+      "from_station": "MTJ",
+      "to_station": "BTE"
+    },
+    {
+      "time_min": 1.0,
+      "event": "SECTION_ENTERED",
+      "train_id": "T006",
+      "section_id": "S03",
+      "from_station": "MTJ",
+      "to_station": "PWL"
+    }
+  ],
+  "trains": [
+    {
+      "train_id": "T022",
+      "train_name": "Gita Jayanti Express",
+      "status": "WAITING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 1.0,
+      "train_type": "Express"
+    },
+    {
+      "train_id": "T012",
+      "train_name": "Paschim Express",
+      "status": "RUNNING",
+      "current_station": "MTJ",
+      "current_section": "S04",
+      "next_station": "BTE",
+      "progress": 0.0505050505050505,
+      "delay_min": 0.0,
+      "train_type": "Superfast"
+    },
+    {
+      "train_id": "T006",
+      "train_name": "Kota Jan Shatabdi",
+      "status": "RUNNING",
+      "current_station": "MTJ",
+      "current_section": "S03",
+      "next_station": "PWL",
+      "progress": 0,
+      "delay_min": 1.0,
+      "train_type": "Jan Shatabdi"
+    },
+    {
+      "train_id": "T023",
+      "train_name": "AWR Kota Express",
+      "status": "WAITING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 1.0,
+      "train_type": "Express"
+    },
+    {
+      "train_id": "T024",
+      "train_name": "Ranthambhore Express",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Express"
+    },
+    {
+      "train_id": "T016",
+      "train_name": "Malwa Express",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Superfast"
+    },
+    {
+      "train_id": "T030",
+      "train_name": "BOXN Coal Freight",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Freight"
+    },
+    {
+      "train_id": "T008",
+      "train_name": "Mewar Express",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Superfast"
+    },
+    {
+      "train_id": "T011",
+      "train_name": "Nanda Devi AC Express",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Express"
+    },
+    {
+      "train_id": "T004",
+      "train_name": "Bhopal Shatabdi",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Shatabdi"
+    },
+    {
+      "train_id": "T005",
+      "train_name": "Gatimaan Express",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Gatimaan"
+    },
+    {
+      "train_id": "T029",
+      "train_name": "Container Freight",
+      "status": "APPROACHING",
+      "current_station": "MTJ",
+      "current_section": null,
+      "next_station": null,
+      "progress": 0,
+      "delay_min": 0.0,
+      "train_type": "Freight"
+    }
+  ],
+  "station": "MTJ",
+  "yard": {
+    "platforms": [
+      {
+        "platform": 1,
+        "train_id": "T022",
+        "aspect": "RED",
+        "held": false,
+        "locked": false,
+        "section": "S04",
+        "destination": "BTE",
+        "reason": "Station exit switch is occupied. Wait for the departing train to clear it."
+      },
+      {
+        "platform": 2,
+        "train_id": "T012",
+        "aspect": "RED",
+        "held": false,
+        "locked": true,
+        "section": "S04",
+        "destination": "BTE",
+        "reason": "Route locked: train is clearing the outgoing section."
+      },
+      {
+        "platform": 3,
+        "train_id": "T006",
+        "aspect": "RED",
+        "held": false,
+        "locked": true,
+        "section": "S03",
+        "destination": "PWL",
+        "reason": "Route locked: train is clearing the outgoing section."
+      },
+      {
+        "platform": 4,
+        "train_id": "T023",
+        "aspect": "RED",
+        "held": false,
+        "locked": false,
+        "section": "S04",
+        "destination": "BTE",
+        "reason": "Station exit switch is occupied. Wait for the departing train to clear it."
+      }
+    ],
+    "assignments": {
+      "T022": 1,
+      "T012": 2,
+      "T006": 3,
+      "T023": 4
+    },
+    "outside": [
+      "T024",
+      "T016",
+      "T030",
+      "T008",
+      "T011",
+      "T004",
+      "T005",
+      "T029"
+    ]
+  }
+}

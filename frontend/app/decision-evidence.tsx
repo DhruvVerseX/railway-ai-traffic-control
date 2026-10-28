@@ -1,4 +1,5 @@
-import { ArrowRight, Check, Database, ShieldCheck } from "lucide-react";
+import { ArrowRight, Check, X, Database, ShieldCheck } from "lucide-react";
+import {trainLabel} from './station-state';
 import {animate, createScope, stagger} from 'animejs';
 import {useEffect, useRef} from 'react';
 
@@ -51,6 +52,8 @@ export type MovementEvent = {
   event: string;
   train_id?: string;
   section_id?: string;
+  from_station?: string;
+  to_station?: string;
   time_min: number;
 };
 
@@ -78,8 +81,16 @@ export default function DecisionEvidence({
     [...steps].reverse().find((step) => step.execution?.executed) || decision;
   const recommendations = trace?.recommendations || [];
   const rec =
-    recommendations.find((item) => item.train_id === selected) ||
-    recommendations[0];
+    selected ? recommendations.find((item) => item.train_id === selected) : recommendations[0];
+  const safetyRows=rec?.checks?.flatMap(check=>{
+    const labels=check.name==='Section occupancy, direction and headway'
+      ? ['Occupancy','Direction','Headway']
+      : check.name==='Platform, signal and exit switch'
+        ? ['Platform availability','Signal / switch'] : [check.name];
+    return labels.map(name=>({...check,name,grouped:labels.length>1}));
+  })??[];
+  const held=rec?.executed_action==='HOLD'||rec?.final_action!=='RELEASE';
+  const verdict=held?`Held: ${rec?.execution_reason||rec?.conflict_reason||rec?.reason||'waiting for a safe move'}`:'Permitted: movement checks clear';
   const controller =
     trace?.controller ||
     (policy === "ml"
@@ -93,6 +104,7 @@ export default function DecisionEvidence({
     .find((event) => event.event === "SECTION_ENTERED");
   const panel = useRef<HTMLElement>(null);
   useEffect(()=>{
+    if(!rec)return;
     const scope=createScope({root:panel,mediaQueries:{reduceMotion:'(prefers-reduced-motion: reduce)'}}).add(self=>{
       if(self&&!self.matches.reduceMotion) animate('.decision-pipeline article',{
         opacity:[.45,1],y:[10,0],delay:stagger(75),duration:400,ease:'outQuad',
@@ -135,7 +147,7 @@ export default function DecisionEvidence({
       </div>
       {movement && (
         <p className="evidence-note">
-          <b>Latest recorded movement:</b> {movement.train_id} entered{" "}
+          <b>Latest recorded movement:</b> {trains.find(t=>t.train_id===movement.train_id)?trainLabel(trains.find(t=>t.train_id===movement.train_id)!):movement.train_id} entered{" "}
           {movement.section_id} at {movement.time_min.toFixed(2)} simulated min.
           Source: backend event log.
         </p>
@@ -151,15 +163,13 @@ export default function DecisionEvidence({
             <label htmlFor="evidence-train">Inspect a train</label>
             <select
               id="evidence-train"
-              value={rec?.train_id || ""}
-              disabled={!rec}
+              value={selected || rec?.train_id || ""}
+              disabled={!trains.length}
               onChange={(event) => onSelect(event.target.value)}
             >
-              {recommendations.map((item) => (
+              {trains.map((item) => (
                 <option key={item.train_id} value={item.train_id}>
-                  {trains.find((train) => train.train_id === item.train_id)
-                    ?.train_name || item.train_id}{" "}
-                  · {item.train_id}
+                  {trainLabel(item)}
                 </option>
               ))}
             </select>
@@ -232,10 +242,10 @@ export default function DecisionEvidence({
               <article>
                 <span className="pipeline-step">03 / SAFETY</span>
                 <h3>
-                  <ShieldCheck size={17} /> Movement checks
+                  <ShieldCheck size={17} /> {verdict}
                 </h3>
-                <ul>
-                  {rec.checks?.map((check, index) => (
+                <ul className="safety-checks">
+                  {safetyRows.map((check, index) => (
                     <li key={index}>
                       <b
                         className={
@@ -245,19 +255,19 @@ export default function DecisionEvidence({
                         {check.passed ? (
                           <Check size={13} />
                         ) : (
-                          <span aria-hidden="true">!</span>
+                          <X size={13} />
                         )}
-                        {check.passed ? "Passed" : "Blocked"}
+                        {check.name}
                       </b>
                       <span>
-                        {check.name}: {check.reason}
+                        {check.grouped ? 'Shared group result' : check.reason}
                       </span>
                     </li>
                   ))}
                 </ul>
-                <p>
-                  <b>Dispatch instruction: {rec.final_action}</b>
-                </p>
+                {!safetyRows.length&&<p>Safety checklist not returned by this policy.</p>}
+                {[...new Set(safetyRows.filter(row=>row.grouped&&!row.passed).map(row=>row.reason))].map(reason=><p key={reason}>{reason}</p>)}
+                <p className="evidence-note">Rows repeat two grouped backend verdicts: occupancy / direction / headway, and platform / signal / switch. Individual check results are not reported.</p>
               </article>
               <article>
                 <span className="pipeline-step">04 / EXECUTION</span>
@@ -282,8 +292,7 @@ export default function DecisionEvidence({
             </div>
           ) : (
             <p className="evidence-empty">
-              No eligible trains at this decision time. Advance time to the next
-              ready train.
+              No recommendation for the selected train in this decision. Select another train or analyze the current queue.
             </p>
           )}
         </>

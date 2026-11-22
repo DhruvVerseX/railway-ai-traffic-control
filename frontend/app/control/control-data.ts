@@ -6,7 +6,7 @@ export type Policy='ml'|'throughput'|'fifo';
 export const policies:Record<Policy,string>={ml:'Random Forest V2',throughput:'Shortest-clearance heuristic',fifo:'FIFO · arrival order'};
 export type Section={section_id:string;from_station:string;to_station:string;distance_km:number;minimum_headway_min?:number;normal_speed_kmph?:number};
 export type ScenarioOption={id:string;label:string;count:number};
-export type Network={stations:{station_code:string;station_name:string}[];sections:Section[];scenarios?:ScenarioOption[]};
+export type Network={stations:{station_code:string;station_name:string;operational_only?:boolean}[];sections:Section[];scenarios?:ScenarioOption[]};
 export type ControlEvent=MovementEvent&{station_id?:string};
 export type NetworkTrain=BackendTrain&{
   entry_time_min:number;ready_time_min?:number;remaining_time_min?:number;waiting_time_min?:number;

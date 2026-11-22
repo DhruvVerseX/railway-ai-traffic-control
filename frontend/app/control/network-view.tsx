@@ -185,7 +185,7 @@ export default function NetworkView({corridor}: {corridor: CorridorControl | nul
     </svg>
     {corridor?<div className="network-legend">
       {layers.occupancy&&<><span><i style={{background:'#427b57'}}/>Timetabled section</span><span><i style={{background:'#98622e'}}/>Occupied / headway</span></>}
-      {corridor.state&&<span>Agra passing loop · {corridor.state.passing_slots_used}/{corridor.state.stations.find(station=>station.passing_capacity)?.passing_capacity} tracks in use or reserved</span>}
+      {corridor.state.stations.filter(station=>station.passing_capacity).map(station=><span key={station.code}>{station.operational_only?station.name:`${station.name} passing loop`} · {corridor.state.passing_slots_used}/{station.passing_capacity} tracks in use or reserved</span>)}
     </div>:<>
       {layers.occupancy?<div className="network-legend"><span><i style={{background:'#a7b99b'}}/>Clear</span><span><i style={{background:'#b28235'}}/>Occupied</span><span><i style={{background:'#bd6650'}}/>Occupied + waiting</span><span><i className="network-headway-key"/>Headway</span></div>:<p className="control-footnote">Occupancy colours hidden.</p>}
       <p className="control-footnote">{illustrative?'Illustrative connections only; no simulated traffic is projected onto this fallback map.':'Connectivity comes from /network JSON. Coordinates are schematic, not geographic. Signals are available only at the simulated station.'}</p>

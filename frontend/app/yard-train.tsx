@@ -1,6 +1,7 @@
 'use client';
 import {useEffect,useRef} from 'react';
 import {yardPose,arrivalPose} from './yard-motion';
+import TrainConsist from './train-consist';
 
 export default function YardTrain({id,name,departing,platform,exitY,color,type,selected,onSelect,playing,speed,aiWarning=false,staticProgress,mockWarning}:{
   id:string;name:string;departing:boolean;platform:number;exitY:number;color:string;type:string|null;
@@ -54,8 +55,6 @@ export default function YardTrain({id,name,departing,platform,exitY,color,type,s
     render();frame=requestAnimationFrame(tick);
     return()=>cancelAnimationFrame(frame);
   },[departing,platform,exitY,staticProgress]);
-  const freight=type?.toLowerCase().includes('freight')||type?.toLowerCase().includes('goods');
-  const coaches=freight?[-135,-90,-45,0,45]:[-90,-45,0,45];
   return <g ref={element} transform={`translate(-150,${125+(platform-1)*85})`}
     role="button" tabIndex={0} className="yard-train" aria-label={`Select ${name} · ${id}`} aria-pressed={selected}
     data-train-id={id} data-departing={departing}
@@ -63,12 +62,6 @@ export default function YardTrain({id,name,departing,platform,exitY,color,type,s
     <title>{name} · {id}{type?` · ${type}`:''}</title>
     {aiWarning&&<ellipse className="control-ai-ring" cx="0" cy="0" rx="112" ry="27"/>}
     {mockWarning&&<g className="mock-train-warning"><title>CLIENT MOCK · {mockWarning}</title><path d="M70 -44L86 -18H54Z" fill="#fff4d6" stroke="#9b6336" strokeWidth="2"/><text x="70" y="-23" textAnchor="middle" fontSize="19" fill="#86532e">!</text></g>}
-    {selected&&<rect x={coaches[0]-10} y="-23" width={95-coaches[0]} height="46" rx="12" fill="none" stroke="#597c4b" strokeWidth="2" strokeDasharray="4 3"/>}
-    <g filter="url(#train-shadow)">{coaches.map((x,index)=><g key={x}>
-      <rect x={x} y="-13" width="40" height="25" rx={freight?2:index===coaches.length-1?8:4} fill={color}/>
-      <rect x={x+3} y="-12" width="34" height="3" rx="2" fill="#fff" opacity=".25"/>
-      {[6,20].map(dx=><rect key={dx} x={x+dx} y="-7" width={freight?2:9} height={freight?17:7} rx={freight?0:2} fill="#f9f4df" opacity={freight?.4:1}/>)}
-      <circle cx={x+8} cy="13" r="4" fill="#59634e"/><circle cx={x+31} cy="13" r="4" fill="#59634e"/>
-    </g>)}</g>
+    <TrainConsist color={color} type={type} selected={selected} yardShadow/>
   </g>;
 }

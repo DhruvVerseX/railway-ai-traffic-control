@@ -13,6 +13,7 @@ import {policies,type Policy} from './control-data';
 import {ControlProvider,useControl} from './control-store';
 import SectionView from './section-view';
 import NetworkView from './network-view';
+import StationScenario from './station-scenario';
 import DecisionPanel from './decision-panel';
 import KpiBar from './kpi-bar';
 import type {CorridorControl} from './corridor-view';
@@ -20,12 +21,12 @@ import {NetworkTrainInspector} from './network-operations';
 import './control.css';
 
 function StationView() {
-  const {snapshot,scene,network,selected,focusToken,focusTrain,command,busy,playing,speed,warnings,replaying,setView}=useControl();
+  const {snapshot,scene,network,selected,focusToken,focusTrain,command,busy,playing,speed,warnings,replaying}=useControl();
   const root=useRef<HTMLDivElement>(null);
   useEffect(()=>{
     if(selected)root.current?.querySelector(`[data-train-id="${CSS.escape(selected)}"]:not([aria-hidden="true"])`)?.scrollIntoView({block:'nearest',inline:'center',behavior:matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth'});
   },[selected,focusToken]);
-  if(snapshot?.timetable)return <div className="control-empty">This scenario’s trains and station queues are on the Network map. <button onClick={()=>setView('network')}>Open Network</button></div>;
+  if(snapshot?.timetable)return <StationScenario timetable={snapshot.timetable}/>;
   const station=snapshot?.station??'MTJ';
   return <div ref={root} className="control-station"><Yard state={scene} station={network?.stations.find(s=>s.station_code===station)?.station_name??station}
     exits={(network?.sections??[]).filter(s=>s.from_station===station||s.to_station===station).map(s=>({destination:s.from_station===station?s.to_station:s.from_station,section:s.section_id}))}
@@ -37,6 +38,7 @@ function ControlRoom() {
   const {network,snapshot,station,policy,playing,speed,busy,error,view,layers,selected}=store;
   const timetable=snapshot?.timetable;
   const networkActive=view==='network';
+  const stationScenario=view==='station'&&!!timetable;
   const timetableActive=networkActive&&!!timetable;
   const corridor:CorridorControl|null=timetableActive&&timetable?{
     state:timetable,sectionId:store.sectionId,setSectionId:store.setSectionId,
@@ -47,11 +49,11 @@ function ControlRoom() {
   const chosen=snapshot?.trains.find(t=>t.train_id===selected);
   const views=[{id:'station',label:'Station',icon:TrainFront},{id:'section',label:'Section',icon:Activity},{id:'network',label:'Network',icon:Map},{id:'compare',label:'Compare',icon:GitBranch}] as const;
   const layerLabels={names:'Names & labels',trains:'Trains',signals:'Signals',occupancy:'Occupancy & routes'};
-  return <main className={`control-app${networkActive?' is-corridor':''}`}>
+  return <main className={`control-app${networkActive||stationScenario?' is-corridor':''}`}>
     <header className="control-topbar"><div className="control-brand"><Link className="logo" href="/"><GitBranch size={23}/>railwise<span>.</span></Link><span>CONTROL ROOM</span><details className="control-help"><summary>Legend & shortcuts</summary><div><p>● Green: on time · amber: ≤5 min late · terracotta: &gt;5 min late.</p><p>× Flickering signal: mock failure · hatch: mock blocked track · ⚠: mock breakdown/delay · grey veil: mock fog.</p><p>AI-coloured ring: model RELEASE blocked by safety. No ML badges for FIFO or heuristic.</p><p>Space: play/pause · 1/2/3: Station/Section/Network · [ / ]: speed. Shortcuts pause while editing controls.</p></div></details><Link href="/" className="control-story-link">Story view <ArrowRight size={13}/></Link></div>
       <div className="control-toolbar">
         {view!=='compare'&&<label>Scenario<select value={store.scenario} disabled={!network||busy||playing} onChange={e=>store.setScenario(e.target.value)}>{scenarios.map(scenario=><option key={scenario.id} value={scenario.id}>{scenario.label} · {scenario.count} trains</option>)}</select></label>}
-        <label>Station<select aria-label="Control station" value={station} disabled={!network||busy||playing||store.replaying||view==='compare'||store.scenario!=='station_queue'} onChange={e=>void store.command('scenario',{station:e.target.value,scenario:'station_queue'})}>{(network?.stations??[{station_code:'MTJ',station_name:'Mathura Junction'}]).map(s=><option key={s.station_code} value={s.station_code}>{s.station_name} · {s.station_code}</option>)}</select></label>
+        <label>Station<select aria-label="Control station" value={station} disabled={!network||busy||playing||store.replaying||view==='compare'||store.scenario!=='station_queue'} onChange={e=>void store.command('scenario',{station:e.target.value,scenario:'station_queue'})}>{(network?.stations.filter(s=>!s.operational_only)??[{station_code:'MTJ',station_name:'Mathura Junction'}]).map(s=><option key={s.station_code} value={s.station_code}>{s.station_name} · {s.station_code}</option>)}</select></label>
         <div className="control-scenario"><span>{snapshot?'LOADED SCENARIO':'READY TO LOAD'}</span><b>{(loaded??configured)?.label}</b></div>
         <label>{view==='compare'?'Run A policy':'Dispatch mode'}<select aria-label="Control dispatch mode" value={policy} disabled={busy||playing||store.replaying||view==='compare'} onChange={e=>store.changePolicy(e.target.value as Policy)}>{Object.entries(policies).map(([value,label])=><option key={value} value={value}>{label}</option>)}</select></label>
         <div className="control-playback">{view!=='compare'&&<button className="primary" disabled={!network||busy||playing} onClick={()=>void store.command('scenario')}>Load trains</button>}<button disabled={!snapshot||(busy&&!playing)} onClick={store.togglePlayback}>{playing?<Pause size={16}/>:<Play size={16}/>} {playing?'Pause':'Play'}</button><button title="Advance one simulated minute using the selected controller" aria-label="Step one minute" disabled={!snapshot||busy||playing} onClick={store.step}><ArrowRight size={16}/>Step</button><button title="Reload the current scenario" aria-label="Reset control scenario" disabled={!snapshot||busy||playing} onClick={()=>void store.command('scenario',{scenario:snapshot?.kind??'station_queue'})}><RotateCcw size={15}/></button></div>
@@ -62,18 +64,18 @@ function ControlRoom() {
     {!network&&!error&&<div className="control-connect-status" role="status">Connecting to the Python API…</div>}{error&&<div className="control-error" role="alert">{error}{(!network||/connect|unreachable|backend|ngrok|JSON|fetch/i.test(error))&&<button disabled={busy} onClick={()=>void store.connect()}>Retry connection</button>}</div>}
     <div className="control-workspace">
       <aside className="control-sidebar" aria-label="Views and layers"><span className="control-kicker">WORKSPACE</span><nav aria-label="Control room views">{views.map(({id,label,icon:Icon})=><button key={id} aria-pressed={view===id} className={view===id?'active':''} onClick={()=>{store.setHovered(null);store.setView(id);}}><Icon size={18}/>{label}</button>)}</nav>
-        <div className="control-layers"><span className="control-kicker"><Layers size={13}/>LAYERS</span>{Object.entries(layerLabels).filter(([key])=>!timetableActive||key!=='signals').map(([key,label])=><label key={key}><input type="checkbox" checked={layers[key as keyof typeof layers]} onChange={e=>store.setLayers(previous=>({...previous,[key]:e.target.checked}))}/>{label}</label>)}</div>
-        {!timetableActive&&<div className="control-conditions"><span className="control-kicker">CONDITIONS · MOCK</span>{([{kind:'fog',label:'Fog · 40 km/h'},{kind:'signal-failure',label:'Signal failure'},{kind:'track-block',label:'Track block'}] as const).map(({kind,label})=><label key={kind}><input type="checkbox" checked={store.disruptions.some(d=>d.kind===kind)} disabled={!snapshot||busy||store.replaying} onChange={e=>store.condition(kind,e.target.checked)}/>{label}</label>)}<small>Visual previews; no physical effect in Python.</small></div>}<div className="control-sidebar-note"><span className="control-kicker">SOURCE</span><p>Python simulation<br/>{timetableActive?'Fixed corridor timetable':'Seeded project traffic'}<br/>No live connection</p></div>
+        <div className="control-layers"><span className="control-kicker"><Layers size={13}/>LAYERS</span>{Object.entries(layerLabels).filter(([key])=>!timetable||key!=='signals').map(([key,label])=><label key={key}><input type="checkbox" checked={layers[key as keyof typeof layers]} onChange={e=>store.setLayers(previous=>({...previous,[key]:e.target.checked}))}/>{label}</label>)}</div>
+        {!timetable&&<div className="control-conditions"><span className="control-kicker">CONDITIONS · MOCK</span>{([{kind:'fog',label:'Fog · 40 km/h'},{kind:'signal-failure',label:'Signal failure'},{kind:'track-block',label:'Track block'}] as const).map(({kind,label})=><label key={kind}><input type="checkbox" checked={store.disruptions.some(d=>d.kind===kind)} disabled={!snapshot||busy||store.replaying} onChange={e=>store.condition(kind,e.target.checked)}/>{label}</label>)}<small>Visual previews; no physical effect in Python.</small></div>}<div className="control-sidebar-note"><span className="control-kicker">SOURCE</span><p>Python simulation<br/>{timetable?'Fixed scenario timetable':'Seeded project traffic'}<br/>No live connection</p></div>
       </aside>
-      <section className="control-center" aria-label="Simulation canvas"><div className="control-canvas-toolbar"><span>{view==='station'?'STATION INTERLOCKING':view==='section'?'SECTION MOVEMENTS':view==='network'?'REGION TOPOLOGY':'PAIRED CONTROLLER RUNS'}</span>
-        <label>Observed section<select aria-label="Observed section" value={store.sectionId} onChange={e=>store.setSectionId(e.target.value)}>{network?.sections.map(s=><option value={s.section_id} key={s.section_id}>{s.section_id} · {s.from_station} ↔ {s.to_station}</option>)}</select></label>{networkActive&&<button disabled={!snapshot||busy||playing||store.replaying} onClick={()=>void store.command('decide')}>Analyze</button>}</div>
-        {!timetableActive&&<ConditionStatus/>}<div className="control-canvas-surface"><div className={'control-stage '+Object.entries(layers).filter(([,enabled])=>!enabled).map(([key])=>'hide-'+key).join(' ')}>
+      <section className="control-center" aria-label="Simulation canvas"><div className="control-canvas-toolbar"><span>{view==='station'?(stationScenario?'STATION & SECTION SCHEMATIC':'STATION INTERLOCKING'):view==='section'?'SECTION MOVEMENTS':view==='network'?'REGION TOPOLOGY':'PAIRED CONTROLLER RUNS'}</span>
+        <label>Observed section<select aria-label="Observed section" value={store.sectionId} onChange={e=>store.setSectionId(e.target.value)}>{(stationScenario?timetable?.sections:network?.sections)?.map(s=><option value={s.section_id} key={s.section_id}>{s.section_id} · {s.from_station} ↔ {s.to_station}</option>)}</select></label>{(networkActive||stationScenario)&&<button disabled={!snapshot||busy||playing||store.replaying} onClick={()=>void store.command('decide')}>Analyze</button>}</div>
+        {!timetable&&<ConditionStatus/>}<div className="control-canvas-surface"><div className={'control-stage '+Object.entries(layers).filter(([,enabled])=>!enabled).map(([key])=>'hide-'+key).join(' ')}>
           <AnimatePresence mode="wait" initial={false}><motion.div className="control-view-frame" key={view} initial={reduce?false:{opacity:0,y:6}} animate={{opacity:1,y:0}} exit={{opacity:0,y:-6}} transition={{duration:reduce?0:.16}}>{view==='station'?<StationView key={store.session||'preview'}/>:view==='section'?<SectionView/>:view==='network'?<NetworkView corridor={corridor}/>:<CompareView/>}</motion.div></AnimatePresence>
           {!snapshot&&view!=='compare'&&<div className="control-load-note"><TrainFront size={19}/><span>Choose a scenario and load trains to begin.</span></div>}
-        </div>{!timetableActive&&<ConditionEffects/>}</div>
-        {!networkActive&&<div className="control-selection"><span>{chosen?<><b>{trainLabel(chosen)}</b> · {chosen.status} · delay {chosen.delay_min.toFixed(1)} min</>:'Select a train on the canvas or in the decision feed.'}</span><button disabled={!snapshot||busy||playing||store.replaying||view==='compare'} onClick={()=>void store.command('decide')}>Analyze queue <ArrowRight size={14}/></button></div>}
+        </div>{!timetable&&<ConditionEffects/>}</div>
+        {!networkActive&&!stationScenario&&<div className="control-selection"><span>{chosen?<><b>{trainLabel(chosen)}</b> · {chosen.status} · delay {chosen.delay_min.toFixed(1)} min</>:'Select a train on the canvas or in the decision feed.'}</span><button disabled={!snapshot||busy||playing||store.replaying||view==='compare'} onClick={()=>void store.command('decide')}>Analyze queue <ArrowRight size={14}/></button></div>}
       </section>
-      {networkActive?<NetworkTrainInspector/>:<DecisionPanel/>}
+      {networkActive||stationScenario?<NetworkTrainInspector/>:<DecisionPanel/>}
     </div>
     <ReplayBar/>{!networkActive&&<KpiBar/>}{!timetable&&disruptOpen&&<DisruptionPanel onClose={()=>setDisruptOpen(false)}/>}
   </main>;

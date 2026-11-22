@@ -1,0 +1,43 @@
+.station-scenario {background:#f5f7ed;padding:16px clamp(10px,2vw,22px);color:var(--ink);}
+.station-scenario-header {display:flex;align-items:end;justify-content:space-between;gap:12px;margin-bottom:14px;}
+.station-scenario-header h2 {margin:5px 0 0;font:750 clamp(19px,3vw,28px)/1.15 'Manrope',sans-serif;letter-spacing:-.035em;}
+.station-scenario-header>span {font-size:11px;color:#51694c;text-align:right;}
+.station-scenario-diagram {position:relative;isolation:isolate;min-height:289px;border:1px solid #dbe4d2;border-radius:9px;background:radial-gradient(#c5d0b8 1px,transparent 1px) 0 0/16px 16px,#eef2e5;}
+.station-scenario-node {position:absolute;top:0;bottom:0;width:0;z-index:2;pointer-events:none;}
+.station-scenario-building {position:absolute;top:25px;width:clamp(65px,19vw,142px);transform:translateX(-50%);display:grid;justify-items:center;gap:3px;padding:6px 4px 8px;background:#e8e4d4;border-top:4px solid #7c916f;border-radius:2px 2px 5px 5px;text-align:center;}
+.station-scenario-building b {font:800 14px 'Manrope',sans-serif;}
+.station-scenario-building.operational-only {top:42px;background:#e4eddd;border:1px dashed #8ca287;border-radius:5px;}
+.station-scenario-building.operational-only b {font-size:11px;}
+.station-scenario-building span {font-size:11px;line-height:1.2;}
+.station-scenario-node-point {position:absolute;top:146px;width:14px;height:14px;transform:translateX(-50%);border:2px solid #4f7156;border-radius:50%;background:#fffef9;}
+.station-scenario-loop {position:absolute;top:150px;width:110px;height:54px;transform:translateX(-50%);border:solid #6b8568;border-width:0 2px 4px;border-radius:0 0 50% 50%;z-index:-1;}
+.station-scenario-loop-note {position:absolute;top:260px;width:120px;transform:translateX(-50%);font-size:10px;line-height:1.2;text-align:center;color:#50664a;}
+.station-scenario-block {position:absolute;top:0;bottom:0;}
+.station-scenario-track {position:absolute;top:150px;width:100%;border-top:6px double #70866c;}
+.station-scenario-track.occupied {border-color:#9a6534;}
+.station-scenario-track.headway {border-top:5px dashed #a8783d;}
+.control-app .station-scenario-section {position:absolute;left:50%;top:91px;transform:translateX(-50%);display:flex;flex-direction:column;gap:2px;min-height:36px;font-weight:800;white-space:nowrap;}
+.station-scenario-section span {font-size:10px;font-weight:500;}
+.control-app .station-scenario-train {position:absolute;z-index:3;display:block;transform:translate(-50%,-50%);width:clamp(68px,15vw,188px);min-height:0;padding:0;border:0;background:transparent;line-height:1;white-space:nowrap;}
+.control-app .station-scenario-train.moving {transition:left .22s linear;}
+.control-app .station-scenario-train:hover {background:transparent;filter:brightness(1.08);}
+.control-app .station-scenario-train[aria-pressed=true] {z-index:4;}
+.station-scenario-train svg {display:block;width:100%;height:auto;overflow:visible;filter:drop-shadow(0 2px 1px #263c2f22);}
+.station-scenario-train svg.westbound {transform:scaleX(-1);}
+.station-scenario-train-label {position:absolute;left:50%;bottom:100%;display:flex;align-items:center;gap:3px;transform:translateX(-50%);padding:3px 5px;border-radius:4px;background:#fffef9;color:#365f46;box-shadow:0 0 0 1px #acbda3;font-size:11px;font-weight:800;}
+.station-scenario-train-label svg {width:12px;height:12px;filter:none;}
+.station-scenario-train[aria-pressed=true] .station-scenario-train-label {background:#365f46;color:#fffef9;}
+.station-scenario-train:not(.moving)::after {content:'';position:absolute;z-index:-1;top:67%;left:5%;right:5%;border-top:5px double #70866c;}
+.station-scenario-sections,.station-scenario-services {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,158px),1fr));gap:8px;margin-top:12px;}
+.control-app .station-scenario-sections button {display:grid;justify-content:start;text-align:left;gap:4px;min-height:54px;}
+.station-scenario-sections button span,.station-scenario-sections button small,.station-scenario-services button small {color:#50664a;font-size:10px;}
+.station-scenario-sections strong {font:800 16px 'Manrope',sans-serif;}
+.control-app .station-scenario-services button {justify-content:flex-start;text-align:left;gap:8px;}
+.station-scenario-services button>span {display:grid;gap:3px;}
+.control-app .station-scenario-section[aria-pressed=true],.control-app .station-scenario-sections button[aria-pressed=true],.control-app .station-scenario-services button[aria-pressed=true] {background:#e1ecd9;border-color:#75926e;}
+@media(max-width:600px){
+  .station-scenario-section span {max-width:84px;white-space:normal;}
+  .station-scenario-building span {font-size:9px;}
+  .station-scenario-loop {width:70px;}
+}
+@media(prefers-reduced-motion:reduce){.control-app .station-scenario-train.moving {transition:none;}}

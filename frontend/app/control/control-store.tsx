@@ -62,7 +62,6 @@ function useControlState() {
       if(reset){
         setCursor(null);setPlaying(false);setSelected(response.trains[0]?.train_id??null);setHovered(null);setFocusToken(0);
         setSectionId(response.timetable?.sections[0]?.section_id??network?.sections.find(s=>s.from_station===response.station||s.to_station===response.station)?.section_id??'');
-        if(response.timetable&&view==='station')setViewState('network');
       }
       if(response.trains.every(t=>t.status==='ARRIVED')||(response.timetable&&response.time>=response.timetable.horizon))setPlaying(false);
     } catch(e) {
@@ -85,6 +84,12 @@ function useControlState() {
   const replay=useMemo(()=>cursor!==null&&view!=='compare'?recordedView(data.records,cursor):null,[cursor,view,data.records]);
   const shownComparison=useMemo(()=>comparison&&view==='compare'&&cursor!==null?{...comparison,...controlAdapter.seek(comparison.records,cursor),error:comparison.records[cursor].error,records:comparison.records.slice(0,cursor+1)}:comparison,[comparison,view,cursor]);
   const shown=view==='compare'?shownComparison?.left??null:replay?.snapshot??data.snapshot;
+  const timetable=shown?.timetable;
+  const activeNetwork=timetable?.replaced_section&&network?{
+    ...network,
+    stations:[...network.stations,...timetable.stations.filter(station=>station.operational_only).map(station=>({station_code:station.code,station_name:station.name,operational_only:true}))],
+    sections:[...network.sections.filter(section=>section.section_id!==timetable.replaced_section),...timetable.sections],
+  }:network;
   const recordedDisruptions=view==='compare'?shownComparison?.records.at(-1)?.disruptions??[]:replay?.disruptions??data.records.at(-1)?.disruptions??[];
   const disruptions=useMemo(()=>activeDisruptions(recordedDisruptions,shown?.time??0),[recordedDisruptions,shown?.time]);
   const scene=useMemo(()=>shown?renderStation(shown,disruptions):null,[shown,disruptions]);
@@ -138,7 +143,7 @@ function useControlState() {
     };
     window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);
   });
-  return {network,snapshot:shown,scene,history:replay?.history??data.history,events:replay?.events??data.events,feed,session:data.session,policy:shownPolicy,station,playing,speed,busy,error,view,selected,hovered,sectionId,focusToken,layers,warnings,scenario,setScenario,
+  return {network:activeNetwork,snapshot:shown,scene,history:replay?.history??data.history,events:replay?.events??data.events,feed,session:data.session,policy:shownPolicy,station,playing,speed,busy,error,view,selected,hovered,sectionId,focusToken,layers,warnings,scenario,setScenario,
     comparison:shownComparison,records,cursor,replaying,disruptions,mlActive:view==='compare'?!!shownComparison?.policies.includes('ml'):shownPolicy==='ml',
     connect,command,changePolicy,focusTrain,setPlaying,setSpeed,setView,setHovered,setSectionId,setLayers,togglePlayback,step,seek,returnLive,inject,condition,clearDisruptions};
 }

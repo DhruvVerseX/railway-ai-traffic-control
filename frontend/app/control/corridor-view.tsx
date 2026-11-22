@@ -23,7 +23,8 @@ type Section = {
 };
 export type Corridor = {
   time: number; horizon: number; trains: Train[]; sections: Section[];
-  stations: {code: string; name: string; departed: number; passing_capacity: number | null}[];
+  stations: {code: string; name: string; departed: number; passing_capacity: number | null; operational_only?: boolean}[];
+  replaced_section?: string | null;
   passing_slots_used: number;
   events: {event: string; train_id: string; section_id: string; time_min: number}[];
 };

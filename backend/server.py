@@ -63,7 +63,7 @@ def snapshot(session):
         item.update({key: record.get(key) for key in ['train_type', 'priority', 'entry_station', 'exit_station', 'max_speed_kmph']})
         if session['kind'] == 'station_queue':
             item['entry_station'] = session['station']
-        section = network.sections.get(train.current_section)
+        section = sim.network.sections.get(train.current_section)
         item['speed'] = min(float(record['max_speed_kmph']), section.normal_speed_kmph) if section and train.status == 'RUNNING' else 0
         item['progress'] = max(0, min(1, 1 - train.remaining_time_min / section.travel_time(float(record['max_speed_kmph'])))) if section else 0
         movement = sim.movement_model.build_movement(train.train_id)

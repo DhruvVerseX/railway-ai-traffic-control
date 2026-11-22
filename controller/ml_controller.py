@@ -105,6 +105,9 @@ class MLTrainController:
         else:
             next_section = movement.section_sequence[section_index]
 
+        section_groups = getattr(simulator, 'model_section_groups', {})
+        model_section = next((parent for parent, blocks in section_groups.items() if next_section in blocks), next_section)
+
         # ----------------------------------------------------
         # Next section occupancy
         # ----------------------------------------------------
@@ -217,7 +220,7 @@ class MLTrainController:
             "max_speed_kmph": max_speed_kmph,
             "length_m": length_m,
             "is_freight": is_freight,
-            "next_section": next_section,
+            "next_section": model_section,
             "next_section_occupied": next_section_occupied,
             "waiting_train_count": waiting_train_count,
             "same_section_competitors": same_section_competitors,
@@ -231,16 +234,13 @@ class MLTrainController:
             "delay_advantage": delay_advantage,
         }
 
+        split_blocks = {block for blocks in section_groups.values() for block in blocks}
         for section_id in self.network.sections:
-
-            features[
-                f"section_{section_id}_occupied"
-            ] = (
-                1
-                if simulator.get_section_occupant(section_id)
-                is not None
-                else 0
-            )
+            if section_id not in split_blocks:
+                features[f"section_{section_id}_occupied"] = int(simulator.get_section_occupant(section_id) is not None)
+        for parent, blocks in section_groups.items():
+            # The saved model sees the original section. Dispatch still checks the exact block.
+            features[f"section_{parent}_occupied"] = int(any(simulator.get_section_occupant(block) is not None for block in blocks))
 
         return features
 
@@ -294,6 +294,8 @@ class MLTrainController:
         result = self.predict(features)
 
         result["train_id"] = train_id
-        result["next_section"] = features["next_section"]
+        movement = simulator.movement_model.build_movement(train_id)
+        section_index = simulator.trains[train_id].section_index
+        result["next_section"] = movement.section_sequence[section_index] if section_index < len(movement.section_sequence) else ""
 
         return result

@@ -1,9 +1,9 @@
 """Deterministic timetable and passing loop for the section-throughput demo."""
 from copy import copy
-from dataclasses import asdict, dataclass
+from dataclasses import asdict, dataclass, replace
 
 from input.input_state import TrafficState, TrainState
-from simulation.network import Route
+from simulation.network import Route, Station
 from simulation.simulator import RailwaySimulator
 from station_dispatch import StationDispatcher
 
@@ -11,6 +11,7 @@ from station_dispatch import StationDispatcher
 STATIONS = ('MTJ', 'AGRA', 'BXN')
 SECTIONS = ('S10', 'S12')
 PASSING_STATION = 'AGRA'
+MIDPOINT = 'LOOP'
 PASSING_CAPACITY = 2
 ROUTE_ID = 'CORRIDOR'
 DWELL_MIN = 3
@@ -29,9 +30,9 @@ class Service:
 
 
 TIMETABLE_SCENARIOS = {
-    'headway': ('Two-train headway', (
-        Service('C201', 'Mathura Express', 'Express', (('MTJ', None, 0), ('AGRA', 41.25, None)), priority=4),
-        Service('C202', 'Agra Freight', 'Freight', (('MTJ', None, 1), ('AGRA', 42.25, None)), length_m=480),
+    'headway': ('Two trains via midpoint loop', (
+        Service('C201', 'Mathura Express', 'Express', (('MTJ', None, 0), (MIDPOINT, 20.625, 26.625), ('AGRA', 47.25, None)), priority=4),
+        Service('C202', 'Agra Freight', 'Freight', (('AGRA', None, 0), (MIDPOINT, 20.625, 26.625), ('MTJ', 47.25, None)), length_m=480),
     )),
     'passing': ('Opposing trains at Agra', (
         Service('C101', 'Mathura Intercity', 'Express', (('MTJ', None, 0), ('AGRA', 41.25, 51), ('BXN', 96, None))),
@@ -45,9 +46,13 @@ TIMETABLE_SCENARIOS = {
 
 
 class CorridorSimulator(RailwaySimulator):
-    def __init__(self, network, timetable):
+    def __init__(self, network, timetable, route, passing_station, replaced_section=None):
         super().__init__(network)
         self.timetable = timetable
+        self.route = route
+        self.passing_station = passing_station
+        self.replaced_section = replaced_section
+        self.model_section_groups = {replaced_section: route.section_sequence} if replaced_section else {}
         self.dispatch_at_stations = True
 
     def complete_current_section(self, train_id):
@@ -64,22 +69,26 @@ class PassingLoop:
         self.sim = simulator
 
     def slots_used(self):
-        return sum(train.next_station == PASSING_STATION or
-                   (train.current_station == PASSING_STATION and train.status == 'WAITING')
+        station = self.sim.passing_station
+        return sum(train.next_station == station or
+                   (train.current_station == station and train.status == 'WAITING')
                    for train in self.sim.trains.values())
     def slot_status(self, train_id):
         train = self.sim.trains[train_id]
-        if train.next_station == PASSING_STATION:
+        if train.next_station == self.sim.passing_station:
             return 'FREE'
-        elif train.current_station == PASSING_STATION and train.status == 'WAITING':
+        elif train.current_station == self.sim.passing_station and train.status == 'WAITING':
             return 'OCCUPIED'
         else:
             return 'BLOCKED'
             
     def blocked_reason(self, train_id):
         train = self.sim.trains[train_id]
-        if train.section_index == 0 and self.slots_used() >= PASSING_CAPACITY:
-            return 'Agra passing loop has no free receiving track.'
+        stops = self.sim.timetable[train_id]
+        next_stop = train.section_index + 1
+        if (next_stop < len(stops) and stops[next_stop]['station'] == self.sim.passing_station
+                and self.slots_used() >= PASSING_CAPACITY):
+            return 'Passing loop has no free receiving track.'
         return None
 
     def throat_release_time(self):
@@ -88,9 +97,22 @@ class PassingLoop:
 
 
 def create_corridor(network, project_database, scenario='passing'):
-    route = Route(ROUTE_ID, 'Mathura–Agra–Bayana', STATIONS[0], STATIONS[-1],
-                  list(STATIONS), list(SECTIONS), 'branch')
     corridor_network = copy(network)
+    passing_station = PASSING_STATION
+    route_stations, route_sections = STATIONS, SECTIONS
+    replaced_section = None
+    if scenario == 'headway':
+        replaced_section = 'S10'
+        original = network.get_section(replaced_section)
+        passing_station = MIDPOINT
+        route_stations, route_sections = ('MTJ', MIDPOINT, 'AGRA'), ('S10W', 'S10E')
+        corridor_network.stations = {**network.stations, MIDPOINT: Station(MIDPOINT, 'Midpoint loop', MIDPOINT, 'passing_loop')}
+        corridor_network.sections = {sid: section for sid, section in network.sections.items() if sid != replaced_section}
+        for sid, start, end in zip(route_sections, route_stations, route_stations[1:]):
+            corridor_network.sections[sid] = replace(original, section_id=sid, from_station=start,
+                                                     to_station=end, distance_km=original.distance_km / 2)
+    route = Route(ROUTE_ID, 'Demonstration corridor', route_stations[0], route_stations[-1],
+                  list(route_stations), list(route_sections), 'branch')
     corridor_network.routes = {**network.routes, ROUTE_ID: route}
     database = copy(project_database)
     database.trains = {}
@@ -110,24 +132,22 @@ def create_corridor(network, project_database, scenario='passing'):
             'max_speed_kmph': 80, 'dwell_min': DWELL_MIN, 'stops_intermediate': True,
             'priority': service.priority, 'length_m': service.length_m,
         }
-        direction = 'UP' if STATIONS.index(origin) < STATIONS.index(destination) else 'DOWN'
+        direction = 'UP' if route_stations.index(origin) < route_stations.index(destination) else 'DOWN'
         traffic.add_train(TrainState(service.train_id, origin, direction, 'APPROACHING', entry_time_min=planned_start))
 
-    sim = CorridorSimulator(corridor_network, timetable)
+    sim = CorridorSimulator(corridor_network, timetable, route, passing_station, replaced_section)
     sim.load_traffic(traffic, database)
     for service in services:
         train = sim.trains[service.train_id]
         train.status = 'NOT_ENTERED'
         train.ready_time_min = train.entry_time_min + service.readiness_delay
     sim.interlocking = PassingLoop(sim)
-    return StationDispatcher(sim, database, PASSING_STATION, policy='fifo')
+    return StationDispatcher(sim, database, passing_station, policy='fifo')
 
 
 def corridor_snapshot(dispatcher):
     sim = dispatcher.simulator
-    station_codes = {stop['station'] for stops in sim.timetable.values() for stop in stops}
-    section_ids = [sid for sid in SECTIONS if {sim.network.sections[sid].from_station,
-                                             sim.network.sections[sid].to_station} <= station_codes]
+    section_ids = sim.route.section_sequence
     sections = []
     arrivals, departures = {}, {}
     completed = dict.fromkeys(section_ids, 0)
@@ -193,9 +213,11 @@ def corridor_snapshot(dispatcher):
                        'progress': 1 - train.remaining_time_min / sim.network.get_section(train.current_section).travel_time(record['max_speed_kmph']) if running else 0})
 
     return {'time': sim.current_time_min, 'horizon': HORIZON_MIN, 'trains': trains, 'sections': sections,
+            'replaced_section': sim.replaced_section,
             'stations': [{'code': code, 'name': sim.network.stations[code].station_name,
                           'departed': sum(station == code for _, station in departures),
-                          'passing_capacity': PASSING_CAPACITY if code == PASSING_STATION else None}
-                         for code in STATIONS if code in station_codes],
+                          'passing_capacity': PASSING_CAPACITY if code == sim.passing_station else None,
+                          'operational_only': sim.network.stations[code].station_type == 'passing_loop'}
+                         for code in sim.route.station_sequence],
             'passing_slots_used': sim.interlocking.slots_used(),
             'events': [event for event in sim.history if event['event'] in {'SECTION_ENTERED', 'SECTION_COMPLETED'}][-8:]}

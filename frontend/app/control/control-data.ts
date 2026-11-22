@@ -1,15 +1,18 @@
 import type {BackendTrain,YardState} from '../station-state';
 import type {Decision,MovementEvent,Recommendation} from '../decision-evidence';
+import type {Corridor} from './corridor-view';
 
 export type Policy='ml'|'throughput'|'fifo';
 export const policies:Record<Policy,string>={ml:'Random Forest V2',throughput:'Shortest-clearance heuristic',fifo:'FIFO · arrival order'};
 export type Section={section_id:string;from_station:string;to_station:string;distance_km:number};
-export type Network={stations:{station_code:string;station_name:string}[];sections:Section[]};
+export type ScenarioOption={id:string;label:string;count:number};
+export type Network={stations:{station_code:string;station_name:string}[];sections:Section[];scenarios?:ScenarioOption[]};
 export type ControlEvent=MovementEvent&{station_id?:string};
 export type Snapshot={
   session?:string;time:number;station:string;policy:Policy;trains:(BackendTrain&{entry_time_min:number})[];
   yard:YardState|null;events:ControlEvent[];occupancy:Record<string,string>;decision:Decision|null;
   metrics:{departed:number;cleared:number;queue:number;throughput_per_hour:number;average_wait_min?:number};
+  kind?:string;timetable?:Corridor|null;
 };
 export type FeedItem={key:string;time:number;policy:Policy;recommendation:Recommendation;runLabel?:string};
 export type ChartPoint={time:number;distance:number|null};

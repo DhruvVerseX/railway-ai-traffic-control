@@ -52,3 +52,27 @@
 .compare-run svg text{font-size:26px}.compare-tradeoffs span{font-size:12px}
 .control-stage.hide-occupancy .yard-section-status{display:none}
 .network-svg{height:0;min-height:180px;flex:1 1 0}.network-view:fullscreen{width:100vw;height:100dvh;padding:12px;box-sizing:border-box;background:#f5f7ed}.network-view:fullscreen .network-svg{min-height:0}.network-collapse{display:none}.network-view:fullscreen .network-expand{display:none}.network-view:fullscreen .network-collapse{display:inline-flex}
+.network-frame{height:100%}.network-with-timetable{height:auto}
+.network-with-timetable .network-view:not(:fullscreen){height:auto;min-height:0}
+.network-with-timetable .network-view:not(:fullscreen) .network-svg{height:clamp(255px,44vh,480px);flex:none}
+.network-with-timetable .network-legend{padding-block:10px 14px}
+.network-with-timetable .network-toolbar>div{flex-wrap:wrap}
+.network-view .network-timetable-jump{display:none}
+.control-stage svg text.network-corridor-section{font-weight:800;paint-order:stroke;stroke:#f5f7ed;stroke-width:3px;stroke-linejoin:round}
+.control-stage svg text.network-running-train{fill:#fff;font-weight:700}
+.control-stage svg text.network-waiting-train{fill:#61461f;font-weight:700}
+.is-corridor .control-canvas-toolbar label{width:auto}
+@media(max-width:850px){
+  .control-app.is-corridor{padding-bottom:0}
+  .is-corridor .control-workspace{display:flex;flex-direction:column}
+  .is-corridor .control-sidebar{border-right:0;border-bottom:1px solid #d8dfcf;padding:6px 10px;gap:0}
+  .is-corridor .control-sidebar>.control-kicker,.is-corridor .control-layers{display:none}
+  .is-corridor .control-sidebar nav{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:3px}
+  .is-corridor .control-sidebar nav button{flex-direction:row;gap:4px;justify-content:center}
+  .is-corridor .control-center,.is-corridor .control-view-frame,.is-corridor .control-canvas-surface>.control-stage{height:auto;overflow:visible}
+  .is-corridor .control-canvas-surface{overflow:visible}
+  .is-corridor .control-canvas-toolbar{justify-content:flex-start}
+  .is-corridor .control-canvas-toolbar>span{width:100%}
+  .network-with-timetable .network-view:not(:fullscreen) .network-svg{height:clamp(230px,38vw,365px)}
+  .network-view:not(:fullscreen) .network-timetable-jump{display:inline-flex}
+}

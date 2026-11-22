@@ -20,6 +20,7 @@ from input.input_state import TrainDatabase
 from scenarios.mixed_scenario_builder import MixedScenarioBuilder
 from station_dispatch import StationDispatcher, station_simulator, station_metrics, compare_station
 from interlocking import StationInterlocking
+from corridor import HORIZON_MIN, TIMETABLE_SCENARIOS, corridor_snapshot, create_corridor
 
 network = RailwayNetwork()
 database = TrainDatabase()
@@ -54,12 +55,13 @@ def make_session(kind='competition', count=6, seed=42):
 
 def snapshot(session):
     sim = session['simulator']
+    timetable = corridor_snapshot(session['controller']) if session['kind'] in TIMETABLE_SCENARIOS else None
     trains = []
     for train in sim.trains.values():
-        record = database.get_train(train.train_id)
+        record = sim.movement_model.train_database.get_train(train.train_id)
         item = asdict(train)
         item.update({key: record.get(key) for key in ['train_type', 'priority', 'entry_station', 'exit_station', 'max_speed_kmph']})
-        if 'station' in session:
+        if session['kind'] == 'station_queue':
             item['entry_station'] = session['station']
         section = network.sections.get(train.current_section)
         item['speed'] = min(float(record['max_speed_kmph']), section.normal_speed_kmph) if section and train.status == 'RUNNING' else 0
@@ -67,12 +69,12 @@ def snapshot(session):
         trains.append(item)
     station = session.get('station', 'MTJ')
     return {'time': sim.current_time_min, 'trains': trains, 'events': sim.history[-100:],
-            'yard': sim.interlocking.snapshot() if hasattr(sim, 'interlocking') else None,
+            'yard': sim.interlocking.snapshot() if isinstance(getattr(sim, 'interlocking', None), StationInterlocking) else None,
             'station': station, 'metrics': station_metrics(sim, station),
             'automatic': isinstance(session['controller'], StationDispatcher),
             'occupancy': sim.section_occupancy, 'decision': session['decision'],
             'policy': getattr(session['controller'], 'policy', None),
-            'model_error': session['model_error'], 'kind': session['kind']}
+            'model_error': session['model_error'], 'kind': session['kind'], 'timetable': timetable}
 
 
 def analysis():
@@ -106,14 +108,21 @@ class Handler(BaseHTTPRequestHandler):
     def do_GET(self):
         try:
             if self.path == '/network':
-                return self.respond(200, {'stations': [asdict(s) for s in network.stations.values()], 'sections': [asdict(s) for s in network.sections.values()]})
+                scenarios = [{'id': 'station_queue', 'label': 'Station queue', 'count': 12}]
+                scenarios.extend({'id': key, 'label': label, 'count': len(services)}
+                                 for key, (label, services) in TIMETABLE_SCENARIOS.items())
+                return self.respond(200, {'stations': [asdict(s) for s in network.stations.values()],
+                                          'sections': [asdict(s) for s in network.sections.values()], 'scenarios': scenarios})
             if self.path == '/analysis':
                 return self.respond(200, compare_station(network, database))
             if self.path.startswith('/state/'):
                 key = self.path.split('/')[-1]
-                if key not in sessions:
+                with state_lock:
+                    session = sessions.get(key)
+                    state = snapshot(session) if session else None
+                if state is None:
                     return self.respond(404, {'error': 'Session expired. Create a new scenario.'})
-                return self.respond(200, snapshot(sessions[key]))
+                return self.respond(200, state)
             self.respond(404, {'error': 'Unknown endpoint'})
         except Exception as error:
             self.respond(500, {'error': str(error)})
@@ -140,24 +149,33 @@ class Handler(BaseHTTPRequestHandler):
                 kind, count, seed = body.get('kind', 'competition'), body.get('count', 6), body.get('seed', 42)
                 if kind not in {'random', 'competition', 'occupied', 'conflict', 'delay_priority'} or type(count) is not int or not 2 <= count <= 20 or type(seed) is not int:
                     return self.respond(400, {'error': 'Choose a valid scenario and 2–20 trains.'})
+                scenario = body.get('scenario', 'station_queue')
+                if scenario in TIMETABLE_SCENARIOS:
+                    controller = create_corridor(network, database, scenario)
+                    station = 'MTJ'
+                elif scenario == 'station_queue':
+                    station = body.get('station', 'MTJ')
+                    if station not in network.stations:
+                        return self.respond(400, {'error': 'Unknown station'})
+                    sim = station_simulator(network, database, station, count, seed)
+                    StationInterlocking(sim, station)
+                    controller = StationDispatcher(sim, database, station)
+                else:
+                    return self.respond(400, {'error': 'Unknown scenario'})
+                controller.set_policy(body.get('policy', 'ml'))
                 if len(sessions) >= 50:
                     sessions.pop(next(iter(sessions)))
                 key = str(uuid.uuid4())
-                station = body.get('station', 'MTJ')
-                if station not in network.stations:
-                    return self.respond(400, {'error': 'Unknown station'})
-                sim = station_simulator(network, database, station, count, seed)
-                StationInterlocking(sim, station)
-                controller = StationDispatcher(sim, database, station)
-                controller.set_policy(body.get('policy', 'ml'))
-                sessions[key] = {'simulator': sim, 'controller': controller,
-                                 'decision': None, 'kind': 'station_queue', 'station': station, 'model_error': None}
+                sessions[key] = {'simulator': controller.simulator, 'controller': controller,
+                                 'decision': None, 'kind': scenario, 'station': station, 'model_error': None}
                 return self.respond(200, {'session': key, **snapshot(sessions[key])})
             session = sessions.get(body.get('session'))
             if session is None:
                 return self.respond(404, {'error': 'Create a scenario first.'})
             sim = session['simulator']
             if self.path in {'/platform', '/signal'}:
+                if not isinstance(getattr(sim, 'interlocking', None), StationInterlocking):
+                    return self.respond(400, {'error': 'Platform controls are available in a station queue scenario.'})
                 if self.path == '/platform':
                     sim.interlocking.change_platform(body.get('train_id'), body.get('platform'))
                 else:
@@ -173,6 +191,10 @@ class Handler(BaseHTTPRequestHandler):
                 minutes = body.get('minutes', 1)
                 if type(minutes) not in {int, float} or not 0 < minutes <= 5:
                     return self.respond(400, {'error': 'Advance must be between 0 and 5 minutes.'})
+                if session['kind'] in TIMETABLE_SCENARIOS:
+                    minutes = min(minutes, HORIZON_MIN - sim.current_time_min)
+                    if minutes <= 0:
+                        return self.respond(200, snapshot(session))
                 if policy == 'manual':
                     sim.advance_time(minutes)
                     session['decision'] = session['controller'].make_decision()

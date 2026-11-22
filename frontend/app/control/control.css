@@ -60,7 +60,12 @@
 .network-view .network-timetable-jump{display:none}
 .control-stage svg text.network-corridor-section{font-weight:800;paint-order:stroke;stroke:#f5f7ed;stroke-width:3px;stroke-linejoin:round}
 .control-stage svg text.network-running-train{fill:#fff;font-weight:700}
+.control-stage svg text.network-train-id{fill:#31513c;font-weight:800}
 .control-stage svg text.network-waiting-train{fill:#61461f;font-weight:700}
+.control-stage svg text.network-station-code{font-weight:700;paint-order:stroke;stroke:#f5f7ed;stroke-width:2px}
+.network-view .network-traffic-key{padding-top:0}
+.network-traffic-key .network-queue-key{height:9px;background:#f2e4ca;border:1px solid #ac854f}
+.network-traffic-key .network-moving-key{height:9px;width:9px;border-radius:50%;background:#4e8b69}
 .is-corridor .control-canvas-toolbar label{width:auto}
 @media(max-width:850px){
   .control-app.is-corridor{padding-bottom:0}

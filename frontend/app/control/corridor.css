@@ -8,6 +8,40 @@
 .corridor-shell {max-width: 1500px; margin: auto; padding: 0 clamp(12px, 2vw, 28px);}
 .corridor-label {color: var(--corridor-muted); font-size: 11px; font-weight: 700; letter-spacing: .09em; text-transform: uppercase;}
 .corridor-workspace {display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%, 320px),1fr)); gap: 16px; margin-bottom: 16px;}
+.network-operations {padding: 12px 16px 20px; border-top: 1px solid var(--corridor-line);}
+.network-section-summary {display: grid; grid-template-columns: minmax(0, 1.8fr) repeat(2, minmax(0, 1fr)); background:#e8efe2; border:1px solid #d7e3d0; border-radius:9px;}
+.network-section-lead, .network-section-number {padding: 13px;}
+.network-section-lead h3 {margin: 4px 0; font: 750 16px/1.35 'Manrope', sans-serif;}
+.network-section-lead h3 span {color: #5c7a60;}
+.network-section-lead p {margin: 0; font-size: 12px; color: var(--corridor-muted);}
+.network-section-number {display:flex; flex-direction:column; justify-content:center; gap:6px; border-left:1px solid #d3dfcc;}
+.network-section-number strong {font: 800 clamp(20px, 2.8vw, 32px)/1 'Manrope', sans-serif; color:#285038; font-variant-numeric:tabular-nums;}
+.network-section-number span, .network-section-number small, .network-direction-queues span {font-size:11px; color:var(--corridor-muted);}
+.network-direction-queues {display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:8px 0 14px;}
+.network-direction-queues>div {display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:6px; padding:8px 10px; background:#fffef9; border:1px solid var(--corridor-line); border-radius:6px;}
+.network-direction-queues strong {display:flex; align-items:center; gap:4px;}
+.network-ops-body {margin:0;}
+.network-station-stats.corridor-train-stats {margin:10px 0;}
+.network-service-picker {display:grid; gap:6px; margin-bottom:15px; color:var(--corridor-muted); font-size:12px;}
+.network-service-picker select {width:100%; text-overflow:ellipsis;}
+.network-train-progress {display:grid; grid-template-columns:1fr auto; gap:4px; margin-top:12px; font-size:12px; color:var(--corridor-muted);}
+.network-train-progress progress {width:100%; grid-column:1/-1; accent-color:var(--green);}
+.network-dispatch-note {display:grid; gap:5px; padding:11px; margin:12px 0; background:#edf1e8; border:1px solid #dae3d2; border-radius:6px;}
+.network-dispatch-note strong {color:#31543d;}
+.network-dispatch-note p {margin:0; font-size:12px;}
+.network-dispatch-note small {color:var(--corridor-muted);}
+.network-train-route {margin:13px 0;}
+.network-train-route ol {display:flex; flex-wrap:wrap; gap:4px; list-style:none; padding:0; margin:6px 0 0;}
+.network-train-route ol li {background:#edf1e8; color:#4c6550; font-size:11px; border-radius:4px; padding:4px 6px;}
+.network-train-route ol li[aria-current] {background:#dce9d7; color:#254f36; font-weight:800;}
+.network-headway-key {background:repeating-linear-gradient(90deg,#91632e 0 3px,transparent 3px 5px);}
+.network-legend.network-inspector-jump {display:none;}
+@media(max-width:850px){.network-legend.network-inspector-jump {display:flex; padding-top:0;}}
+@media(max-width:540px){
+  .network-section-summary {grid-template-columns:1fr 1fr;}
+  .network-section-lead {grid-column:1/-1; border-bottom:1px solid #d3dfcc;}
+  .network-section-number:nth-child(2) {border-left:0;}
+}
 .corridor-panel {min-width: 0; padding: clamp(15px, 2vw, 24px); border: 1px solid var(--corridor-line); border-radius: 12px; background: var(--corridor-card);}
 .corridor-card-heading {display: flex; justify-content: space-between; align-items: center; gap: 10px;}
 .corridor-card-heading>span {font-size: 11px; color: var(--corridor-muted); text-align: right;}

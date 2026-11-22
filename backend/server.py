@@ -66,13 +66,31 @@ def snapshot(session):
         section = network.sections.get(train.current_section)
         item['speed'] = min(float(record['max_speed_kmph']), section.normal_speed_kmph) if section and train.status == 'RUNNING' else 0
         item['progress'] = max(0, min(1, 1 - train.remaining_time_min / section.travel_time(float(record['max_speed_kmph'])))) if section else 0
+        movement = sim.movement_model.build_movement(train.train_id)
+        route_sections = movement.section_sequence
+        cursor = movement.entry_station
+        route_stations = [cursor]
+        for section_id in route_sections:
+            leg = sim.network.get_section(section_id)
+            cursor = leg.to_station if cursor == leg.from_station else leg.from_station
+            route_stations.append(cursor)
+        start = route_stations.index(item['entry_station'])
+        item['route_stations'] = route_stations[start:]
+        item['route_sections'] = route_sections[start:]
+        item['next_section'] = route_sections[train.section_index] if train.section_index < len(route_sections) else None
+        item['next_stop'] = route_stations[train.section_index + 1] if item['next_section'] else None
+        item['train_number'] = record.get('train_number')
+        item['length_m'] = record.get('length_m')
         trains.append(item)
     station = session.get('station', 'MTJ')
+    detector = sim._conflict_detector
+    clearance_until = {sid: time + sim.network.get_section(sid).minimum_headway_min
+                       for sid, time in detector.last_exit_time.items()} if detector else {}
     return {'time': sim.current_time_min, 'trains': trains, 'events': sim.history[-100:],
             'yard': sim.interlocking.snapshot() if isinstance(getattr(sim, 'interlocking', None), StationInterlocking) else None,
             'station': station, 'metrics': station_metrics(sim, station),
             'automatic': isinstance(session['controller'], StationDispatcher),
-            'occupancy': sim.section_occupancy, 'decision': session['decision'],
+            'occupancy': sim.section_occupancy, 'clearance_until': clearance_until, 'decision': session['decision'],
             'policy': getattr(session['controller'], 'policy', None),
             'model_error': session['model_error'], 'kind': session['kind'], 'timetable': timetable}
 

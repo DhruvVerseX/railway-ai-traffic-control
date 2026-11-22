@@ -4,15 +4,21 @@ import type {Corridor} from './corridor-view';
 
 export type Policy='ml'|'throughput'|'fifo';
 export const policies:Record<Policy,string>={ml:'Random Forest V2',throughput:'Shortest-clearance heuristic',fifo:'FIFO · arrival order'};
-export type Section={section_id:string;from_station:string;to_station:string;distance_km:number};
+export type Section={section_id:string;from_station:string;to_station:string;distance_km:number;minimum_headway_min?:number;normal_speed_kmph?:number};
 export type ScenarioOption={id:string;label:string;count:number};
 export type Network={stations:{station_code:string;station_name:string}[];sections:Section[];scenarios?:ScenarioOption[]};
 export type ControlEvent=MovementEvent&{station_id?:string};
+export type NetworkTrain=BackendTrain&{
+  entry_time_min:number;ready_time_min?:number;remaining_time_min?:number;waiting_time_min?:number;
+  speed?:number;direction?:string;train_number?:string|null;length_m?:string|number|null;
+  priority?:string|number;max_speed_kmph?:string|number;entry_station?:string;exit_station?:string;
+  route_stations?:string[];route_sections?:string[];next_section?:string|null;next_stop?:string|null;
+};
 export type Snapshot={
-  session?:string;time:number;station:string;policy:Policy;trains:(BackendTrain&{entry_time_min:number})[];
+  session?:string;time:number;station:string;policy:Policy;trains:NetworkTrain[];
   yard:YardState|null;events:ControlEvent[];occupancy:Record<string,string>;decision:Decision|null;
   metrics:{departed:number;cleared:number;queue:number;throughput_per_hour:number;average_wait_min?:number};
-  kind?:string;timetable?:Corridor|null;
+  kind?:string;timetable?:Corridor|null;clearance_until?:Record<string,number>;
 };
 export type FeedItem={key:string;time:number;policy:Policy;recommendation:Recommendation;runLabel?:string};
 export type ChartPoint={time:number;distance:number|null};

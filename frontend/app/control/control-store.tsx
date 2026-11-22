@@ -104,7 +104,7 @@ function useControlState() {
   const focusTrain=(id:string)=>{
     setSelected(id);setHovered(null);setFocusToken(n=>n+1);
     const train=shown?.trains.find(t=>t.train_id===id);
-    const section=train?.current_section??shown?.timetable?.trains.find(t=>t.id===id)?.outgoing??shown?.yard?.platforms.find(p=>p.train_id===id)?.section;
+    const section=train?.current_section??train?.next_section??shown?.timetable?.trains.find(t=>t.id===id)?.outgoing??shown?.yard?.platforms.find(p=>p.train_id===id)?.section;
     if(section)setSectionId(section);
   };
   const recordDisruptions=(next:Disruption[],marker:TimelineMarker)=>{
